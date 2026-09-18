@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mini Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-gray-800 min-h-screen text-white flex flex-col items-center justify-center p-4">
+
+    <div class="bg-gray-900 p-8 rounded-2xl shadow-2xl w-full max-w-md text-center border border-gray-700">
+        <h1 class="text-3xl font-bold text-yellow-400 mb-2">มินิเกมจำลอง</h1>
+        <p id="player-info" class="text-gray-400 mb-6">กำลังโหลดข้อมูลผู้เล่น...</p>
+        
+        <!-- พื้นที่เล่นเกม -->
+        <div class="py-8">
+            <p class="text-xl mb-4">กดปุ่มด้านล่างเพื่อเล่นเกม!</p>
+            <button onclick="finishGame()" class="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold py-4 px-8 rounded-full shadow-lg transform transition hover:scale-105 text-xl">
+                🎲 สุ่มคะแนน & จบเกม
+            </button>
+        </div>
+
+        <p id="result-message" class="text-green-400 font-bold mt-4 text-lg hidden"></p>
+        
+        <button onclick="window.location.href='index.html'" class="mt-8 text-gray-400 hover:text-white underline text-sm">
+            กลับไปหน้าหลัก
+        </button>
+    </div>
+
+    <script>
+        // 1. ตั้งค่า Supabase (ดึงข้อมูลกลับฐานข้อมูล)
+        const SUPABASE_URL = 'https://gtcjixepijvcgvyfpqws.supabase.co'; 
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0Y2ppeGVwaWp2Y2d2eWZwcXdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3MjU5NDYsImV4cCI6MjEwMTMwMTk0Nn0.FyEIl4r_LXhLeUxIzHusKzpnp7EdMvjADCdiLEMS-G8'; 
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // 2. ใช้ JavaScript ดึงตัวแปรจาก URL (ที่ส่งมาจากแอปหลัก)
+        const urlParams = new URLSearchParams(window.location.search);
+        const studentId = urlParams.get('student_id');
+        const gameId = urlParams.get('game_id');
+
+        if (studentId && gameId) {
+            document.getElementById('player-info').textContent = "ระบบเชื่อมต่อรหัสนักเรียนเรียบร้อยแล้ว";
+        } else {
+            document.getElementById('player-info').textContent = "⚠️ ไม่พบข้อมูลผู้เล่น (กรุณาเข้าผ่านหน้าศูนย์รวมเกม)";
+        }
+
+        // 3. ฟังก์ชันจบเกมและส่งคะแนน
+        async function finishGame() {
+            if (!studentId || !gameId) {
+                alert("ไม่สามารถบันทึกคะแนนได้"); return;
+            }
+
+            // ระบบจำลองแจกคะแนนแบบสุ่ม (10 - 100 คะแนน)
+            const score = Math.floor(Math.random() * 10) * 10 + 10; 
+            const btn = document.querySelector('button');
+            btn.disabled = true;
+            btn.textContent = "กำลังบันทึกคะแนน...";
+
+            try {
+                // โค้ดส่งข้อมูลเข้าตาราง scores ใน Supabase
+                const { error } = await supabaseClient
+                    .from('scores')
+                    .insert([
+                        { student_id: studentId, game_id: gameId, score: score }
+                    ]);
+
+                if (error) throw error;
+
+                // เมื่อบันทึกสำเร็จ
+                document.getElementById('result-message').textContent = `🎉 ยินดีด้วย! คุณได้ ${score} คะแนน (บันทึกลงระบบแล้ว)`;
+                document.getElementById('result-message').classList.remove('hidden');
+                btn.textContent = "บันทึกสำเร็จ!";
+
+            } catch (err) {
+                console.error("Error saving score:", err);
+                alert("เกิดข้อผิดพลาดในการบันทึกคะแนน");
+                btn.disabled = false;
+                btn.textContent = "ลองใหม่อีกครั้ง";
+            }
+        }
+    </script>
+</body>
+</html>

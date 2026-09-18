@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบจัดการหลังบ้าน</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-gray-100 font-sans">
+
+    <!-- หน้าจอล็อกอินสำหรับครู -->
+    <div id="admin-login" class="flex min-h-screen items-center justify-center p-4">
+        <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-sm text-center">
+            <h1 class="text-2xl font-bold text-indigo-700 mb-2">เข้าสู่ระบบหลังบ้าน</h1>
+            <p class="text-sm text-gray-500 mb-6">สำหรับผู้ดูแลระบบเท่านั้น</p>
+            <input type="password" id="admin-pwd" placeholder="รหัสผ่าน" class="w-full px-4 py-2 border rounded-lg mb-4 text-center">
+            <button onclick="checkAdminPassword()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg">เข้าสู่ระบบ</button>
+            <p id="admin-error" class="text-red-500 text-sm mt-3 hidden">รหัสผ่านไม่ถูกต้อง</p>
+        </div>
+    </div>
+
+    <!-- หน้า Dashboard หลังบ้าน -->
+    <div id="admin-dashboard" class="hidden min-h-screen flex-col">
+        <header class="bg-indigo-700 text-white p-4 shadow-md flex justify-between items-center">
+            <h1 class="text-xl font-bold">🛠️ ระบบจัดการ - โรงเรียนบ้านเชิงทะเล (ตันติวิท)</h1>
+            <div class="flex items-center gap-4">
+                <span class="text-sm">สวัสดี, ครูต้นกล้า</span>
+                <button onclick="location.reload()" class="bg-red-500 hover:bg-red-600 px-3 py-1 rounded text-sm">ออกระบบ</button>
+            </div>
+        </header>
+
+        <main class="p-6 max-w-6xl mx-auto w-full grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            <!-- ส่วนที่ 1: ตารางคะแนน Leaderboard -->
+            <div class="bg-white p-6 rounded-xl shadow-md col-span-1 md:col-span-2">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold text-gray-800">🏆 สรุปคะแนนล่าสุด (Leaderboard)</h2>
+                    <button onclick="loadLeaderboard()" class="text-indigo-600 hover:underline text-sm">รีเฟรชข้อมูล</button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-gray-100 text-gray-700 text-sm">
+                                <th class="p-3 border-b">ชื่อ-สกุล</th>
+                                <th class="p-3 border-b">ชั้นเรียน</th>
+                                <th class="p-3 border-b">เกมที่เล่น</th>
+                                <th class="p-3 border-b">คะแนน</th>
+                                <th class="p-3 border-b">เวลาที่เล่น</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leaderboard-body" class="text-sm">
+                            <tr><td colspan="5" class="p-4 text-center text-gray-500">กำลังโหลดข้อมูล...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ส่วนที่ 2: เพิ่มรายชื่อนักเรียน -->
+            <div class="bg-white p-6 rounded-xl shadow-md">
+                <h2 class="text-lg font-bold text-gray-800 mb-4">👤 เพิ่มรายชื่อนักเรียนใหม่</h2>
+                <div class="space-y-3">
+                    <input type="text" id="new-std-code" placeholder="รหัสประจำตัว (เช่น 1235)" class="w-full px-3 py-2 border rounded">
+                    <div class="flex gap-2">
+                        <input type="text" id="new-std-fname" placeholder="ชื่อ" class="w-1/2 px-3 py-2 border rounded">
+                        <input type="text" id="new-std-lname" placeholder="นามสกุล" class="w-1/2 px-3 py-2 border rounded">
+                    </div>
+                    <input type="text" id="new-std-class" placeholder="ชั้นเรียน (เช่น ป.4/1)" class="w-full px-3 py-2 border rounded">
+                    <button onclick="addStudent()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded">บันทึกข้อมูลนักเรียน</button>
+                </div>
+            </div>
+
+            <!-- ส่วนที่ 3: เพิ่มเกมใหม่ -->
+            <div class="bg-white p-6 rounded-xl shadow-md">
+                <h2 class="text-lg font-bold text-gray-800 mb-4">🎮 เพิ่มเกมใหม่เข้าระบบ</h2>
+                <div class="space-y-3">
+                    <input type="text" id="new-game-name" placeholder="ชื่อเกม" class="w-full px-3 py-2 border rounded">
+                    <input type="text" id="new-game-desc" placeholder="คำอธิบายสั้นๆ" class="w-full px-3 py-2 border rounded">
+                    <input type="text" id="new-game-url" placeholder="URL ไฟล์เกม (เช่น game-template.html)" class="w-full px-3 py-2 border rounded">
+                    <button onclick="addGame()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded">เผยแพร่เกม</button>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        // 1. ตั้งค่าการเชื่อมต่อ Supabase
+        const SUPABASE_URL = 'https://gtcjixepijvcgvyfpqws.supabase.co'; 
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0Y2ppeGVwaWp2Y2d2eWZwcXdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3MjU5NDYsImV4cCI6MjEwMTMwMTk0Nn0.FyEIl4r_LXhLeUxIzHusKzpnp7EdMvjADCdiLEMS-G8'; 
+        
+        // แก้ไข: เปลี่ยนชื่อตัวแปรเป็น supabaseClient
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // 2. ฟังก์ชันตรวจสอบรหัสผ่าน (รหัสผ่านเริ่มต้นคือ admin123)
+        function checkAdminPassword() {
+            const pwd = document.getElementById('admin-pwd').value;
+            if (pwd === 'admin123') {
+                document.getElementById('admin-login').classList.add('hidden');
+                document.getElementById('admin-dashboard').classList.remove('hidden');
+                loadLeaderboard(); // โหลดข้อมูลคะแนนทันทีที่เข้าสู่ระบบ
+            } else {
+                document.getElementById('admin-error').classList.remove('hidden');
+            }
+        }
+
+        // 3. ฟังก์ชันดึงคะแนน 
+        async function loadLeaderboard() {
+            const tbody = document.getElementById('leaderboard-body');
+            tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-gray-500">กำลังโหลด...</td></tr>';
+
+            try {
+                // แก้ไข: ใช้ supabaseClient
+                const { data, error } = await supabaseClient
+                    .from('scores')
+                    .select(`
+                        score,
+                        played_at,
+                        students ( first_name, last_name, class_room ),
+                        games ( game_name )
+                    `)
+                    .order('score', { ascending: false })
+                    .limit(20);
+
+                if (error) throw error;
+
+                if (data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-gray-500">ยังไม่มีประวัติการเล่น</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = '';
+                data.forEach(row => {
+                    const date = new Date(row.played_at).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' });
+                    const tr = document.createElement('tr');
+                    tr.className = "border-b hover:bg-gray-50";
+                    tr.innerHTML = `
+                        <td class="p-3">${row.students.first_name} ${row.students.last_name}</td>
+                        <td class="p-3">${row.students.class_room}</td>
+                        <td class="p-3 text-indigo-600">${row.games.game_name}</td>
+                        <td class="p-3 font-bold text-green-600">${row.score}</td>
+                        <td class="p-3 text-gray-400 text-xs">${date}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (err) {
+                console.error(err);
+                tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-red-500">ดึงข้อมูลล้มเหลว</td></tr>';
+            }
+        }
+
+        // 4. ฟังก์ชันเพิ่มนักเรียน
+        async function addStudent() {
+            const code = document.getElementById('new-std-code').value.trim();
+            const fname = document.getElementById('new-std-fname').value.trim();
+            const lname = document.getElementById('new-std-lname').value.trim();
+            const cls = document.getElementById('new-std-class').value.trim();
+
+            if (!code || !fname || !lname || !cls) return alert('กรุณากรอกข้อมูลให้ครบ');
+
+            // แก้ไข: ใช้ supabaseClient
+            const { error } = await supabaseClient.from('students').insert([{
+                student_code: code, first_name: fname, last_name: lname, class_room: cls
+            }]);
+
+            if (error) alert('Error: ' + error.message);
+            else { alert('เพิ่มนักเรียนสำเร็จ!'); document.querySelectorAll('#new-std-code, #new-std-fname, #new-std-lname, #new-std-class').forEach(el => el.value = ''); }
+        }
+
+        // 5. ฟังก์ชันเพิ่มเกม
+        async function addGame() {
+            const name = document.getElementById('new-game-name').value.trim();
+            const desc = document.getElementById('new-game-desc').value.trim();
+            const url = document.getElementById('new-game-url').value.trim();
+
+            if (!name || !url) return alert('กรุณากรอกชื่อเกม และ URL');
+
+            // แก้ไข: ใช้ supabaseClient
+            const { error } = await supabaseClient.from('games').insert([{
+                game_name: name, description: desc, game_url: url, is_active: true
+            }]);
+
+            if (error) alert('Error: ' + error.message);
+            else { alert('เพิ่มเกมสำเร็จ!'); document.querySelectorAll('#new-game-name, #new-game-desc, #new-game-url').forEach(el => el.value = ''); }
+        }
+    </script>
+
+</body>
+</html>

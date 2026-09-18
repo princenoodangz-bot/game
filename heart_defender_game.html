@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Heart Defender: ภารกิจพิทักษ์หัวใจ</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Supabase JS v2 -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- Tailwind Configuration -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'neon-cyan': '#00f3ff',
+                        'neon-pink': '#ff00ff',
+                        'blood-red': '#ff003c',
+                        'vein-blue': '#0066ff',
+                        'dark-bg': '#070b19',
+                        'glass-bg': 'rgba(15, 23, 42, 0.6)',
+                        'glass-border': 'rgba(0, 243, 255, 0.2)'
+                    },
+                    fontFamily: {
+                        sans: ['Sarabun', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap');
+
+        body {
+            background-color: #070b19;
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(0, 243, 255, 0.05), transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(255, 0, 255, 0.05), transparent 25%);
+            color: white;
+            font-family: 'Sarabun', sans-serif;
+            overflow: hidden; /* ป้องกันการเลื่อนจอ */
+            touch-action: none;
+        }
+
+        /* Glassmorphism Classes */
+        .glass {
+            background: var(--tw-colors-glass-bg, rgba(15, 23, 42, 0.6));
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--tw-colors-glass-border, rgba(0, 243, 255, 0.2));
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+        
+        .glass-panel {
+            background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.01) 100%);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        /* Animations */
+        @keyframes heartbeat {
+            0% { transform: scale(1); }
+            15% { transform: scale(1.1); }
+            30% { transform: scale(1); }
+            45% { transform: scale(1.1); }
+            60% { transform: scale(1); }
+            100% { transform: scale(1); }
+        }
+        .animate-heartbeat { animation: heartbeat 1.5s infinite; }
+
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+        .animate-float { animation: float 3s ease-in-out infinite; }
+
+        @keyframes pulse-hint {
+            0% { box-shadow: 0 0 0 0 rgba(0, 243, 255, 0.7); }
+            70% { box-shadow: 0 0 0 15px rgba(0, 243, 255, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(0, 243, 255, 0); }
+        }
+        .animate-pulse-hint { animation: pulse-hint 2s infinite; }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-5px); }
+            40%, 80% { transform: translateX(5px); }
+        }
+        .animate-shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
+
+        .flash-red {
+            animation: flashRed 0.5s ease-out;
+        }
+        @keyframes flashRed {
+            0% { background-color: rgba(255, 0, 60, 0.5); }
+            100% { background-color: transparent; }
+        }
+
+        /* SVG Interactions */
+        .heart-chamber { transition: all 0.3s ease; cursor: pointer; }
+        .heart-chamber:hover, .heart-chamber.active { filter: drop-shadow(0 0 8px currentColor) brightness(1.2); }
+        
+        /* Game Canvas */
+        #game-canvas {
+            width: 100%;
+            height: 300px;
+            background: #0a1128;
+            border-radius: 0.75rem;
+            border: 2px solid #00f3ff;
+            box-shadow: inset 0 0 20px rgba(0,243,255,0.2);
+        }
+
+        /* Progress Bar */
+        progress::-webkit-progress-bar { background-color: rgba(255,255,255,0.1); border-radius: 99px; }
+        progress::-webkit-progress-value { background-color: #ff003c; border-radius: 99px; transition: width 0.3s; }
+
+        /* Hide scrollbar */
+        ::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col relative" id="main-body">
+
+    <!-- Flash Overlay สำหรับตอนโดนดาเมจ -->
+    <div id="damage-overlay" class="absolute inset-0 pointer-events-none z-50 transition-colors duration-300"></div>
+
+    <header class="glass z-40 p-3 mx-2 mt-2 rounded-2xl flex justify-between items-center relative">
+        <div class="flex flex-col gap-1 w-1/3">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-heart text-blood-red animate-heartbeat text-sm"></i>
+                <progress id="hp-bar" value="100" max="100" class="w-full h-3"></progress>
+            </div>
+            <span class="text-xs text-gray-300">HP: <span id="hp-text">100</span>/100</span>
+        </div>
+        
+        <div class="flex gap-3 text-sm w-1/3 justify-center">
+            <div class="flex items-center gap-1 text-yellow-400">
+                <i class="fa-solid fa-coins"></i> <span id="coin-text">0</span>
+            </div>
+            <div class="flex items-center gap-1 text-neon-cyan">
+                <i class="fa-solid fa-gem"></i> <span id="diamond-text">0</span>
+            </div>
+        </div>
+
+        <div class="w-1/3 text-right">
+            <div class="text-xs text-gray-400">SCORE</div>
+            <div class="text-xl font-bold text-neon-pink" id="score-text" style="font-family: monospace;">0</div>
+        </div>
+    </header>
+
+    <!-- พื้นที่หลักสำหรับแสดงหน้าจอต่างๆ -->
+    <main id="main-content" class="flex-1 relative w-full h-full p-4 overflow-hidden flex flex-col items-center justify-center">
+        
+        <div id="screen-dashboard" class="w-full h-full flex flex-col items-center justify-center gap-6">
+            <h1 class="text-2xl font-bold text-center text-transparent bg-clip-text bg-gradient-to-r from-neon-cyan to-neon-pink">
+                HEART DEFENDER<br><span class="text-sm text-gray-300 font-normal">ระบบการทำงานของหัวใจ</span>
+            </h1>
+
+            <!-- ภาพจำลองหัวใจ (SVG) -->
+            <div class="relative w-48 h-48 animate-float z-10">
+                <svg viewBox="0 0 200 200" class="w-full h-full drop-shadow-[0_0_15px_rgba(255,0,60,0.5)]">
+                    <!-- หัวใจห้องบนขวา (Right Atrium) สีฟ้า -->
+                    <path d="M100 40 C 70 20, 20 40, 40 100 C 45 110, 80 120, 100 130 Z" fill="#1e3a8a" stroke="#00f3ff" stroke-width="2" />
+                    <!-- หัวใจห้องล่างขวา (Right Ventricle) สีฟ้า -->
+                    <path d="M40 100 C 20 160, 80 190, 100 180 C 95 150, 100 130, 100 130 Z" fill="#1e40af" stroke="#00f3ff" stroke-width="2" />
+                    <!-- หัวใจห้องบนซ้าย (Left Atrium) สีแดง -->
+                    <path d="M100 40 C 130 20, 180 40, 160 100 C 155 110, 120 120, 100 130 Z" fill="#991b1b" stroke="#ff003c" stroke-width="2" />
+                    <!-- หัวใจห้องล่างซ้าย (Left Ventricle) สีแดง -->
+                    <path d="M160 100 C 180 160, 120 190, 100 180 C 105 150, 100 130, 100 130 Z" fill="#b91c1c" stroke="#ff003c" stroke-width="2" />
+                    <!-- เส้นเลือดดำใหญ่ (Vena Cava) -->
+                    <path d="M60 10 L 60 40 M 80 10 L 80 40" stroke="#00f3ff" stroke-width="8" stroke-linecap="round"/>
+                    <!-- เส้นเลือดแดงใหญ่ (Aorta) -->
+                    <path d="M120 10 C 140 0, 160 20, 140 40" stroke="#ff003c" stroke-width="8" fill="none" stroke-linecap="round"/>
+                </svg>
+            </div>
+
+            <button onclick="startGame()" class="mt-4 px-8 py-3 bg-gradient-to-r from-neon-pink to-blood-red rounded-full font-bold text-lg shadow-[0_0_20px_rgba(255,0,255,0.4)] animate-pulse-hint active:scale-95 transition-transform">
+                เริ่มภารกิจ
+            </button>
+        </div>
+
+        <div id="screen-stage1" class="hidden w-full h-full flex flex-col items-center justify-start pt-4 gap-4">
+            <h2 class="text-xl font-bold text-neon-cyan text-center">ด่าน 1: โครงสร้างหัวใจ</h2>
+            <p class="text-sm text-center text-gray-300">แตะที่ห้องหัวใจทั้ง 4 เพื่อศึกษาหน้าที่</p>
+            
+            <div class="relative w-64 h-64 mt-4">
+                <svg viewBox="0 0 200 200" class="w-full h-full">
+                    <!-- RA -->
+                    <path id="chamber-ra" class="heart-chamber text-[#00f3ff]" d="M100 40 C 70 20, 20 40, 40 100 C 45 110, 80 120, 100 130 Z" fill="#1e3a8a" stroke="currentColor" stroke-width="2" onclick="exploreChamber('ra')" />
+                    <text x="50" y="80" fill="white" font-size="12" pointer-events="none">RA</text>
+                    <!-- RV -->
+                    <path id="chamber-rv" class="heart-chamber text-[#00f3ff]" d="M40 100 C 20 160, 80 190, 100 180 C 95 150, 100 130, 100 130 Z" fill="#1e40af" stroke="currentColor" stroke-width="2" onclick="exploreChamber('rv')" />
+                    <text x="60" y="150" fill="white" font-size="12" pointer-events="none">RV</text>
+                    <!-- LA -->
+                    <path id="chamber-la" class="heart-chamber text-[#ff003c]" d="M100 40 C 130 20, 180 40, 160 100 C 155 110, 120 120, 100 130 Z" fill="#991b1b" stroke="currentColor" stroke-width="2" onclick="exploreChamber('la')" />
+                    <text x="135" y="80" fill="white" font-size="12" pointer-events="none">LA</text>
+                    <!-- LV -->
+                    <path id="chamber-lv" class="heart-chamber text-[#ff003c]" d="M160 100 C 180 160, 120 190, 100 180 C 105 150, 100 130, 100 130 Z" fill="#b91c1c" stroke="currentColor" stroke-width="2" onclick="exploreChamber('lv')" />
+                    <text x="125" y="150" fill="white" font-size="12" pointer-events="none">LV</text>
+                </svg>
+            </div>
+
+            <div id="chamber-info" class="glass-panel w-full p-4 rounded-xl min-h-[100px] text-sm text-center">
+                แตะที่ส่วนต่างๆ ของหัวใจเพื่อดูข้อมูล
+            </div>
+
+            <button id="btn-next-stage1" onclick="nextStage(2)" class="hidden px-6 py-2 bg-neon-cyan text-dark-bg font-bold rounded-full mt-2 animate-pulse-hint">
+                ผ่านด่าน
+            </button>
+        </div>
+
+        <div id="screen-stage2" class="hidden w-full h-full flex flex-col items-center justify-start pt-4 gap-4 w-full max-w-md mx-auto">
+            <h2 class="text-xl font-bold text-neon-cyan text-center">ด่าน 2: เส้นทางเลือด</h2>
+            <p class="text-sm text-center text-gray-300">กดปุ่มเรียงลำดับการไหลของเลือดให้ถูกต้อง</p>
+            
+            <div class="flex flex-wrap gap-2 justify-center mb-4" id="seq-options">
+                <!-- Buttons generated by JS -->
+            </div>
+
+            <div class="glass-panel w-full p-4 rounded-xl min-h-[150px]">
+                <h3 class="text-sm text-gray-400 mb-2">ลำดับที่คุณเลือก:</h3>
+                <div id="seq-answer" class="flex flex-col gap-2">
+                    <!-- Answers generated here -->
+                </div>
+            </div>
+
+            <div class="flex gap-2">
+                <button onclick="resetSequence()" class="px-4 py-2 border border-gray-500 rounded-lg text-sm">เริ่มใหม่</button>
+                <button onclick="checkSequence()" class="px-6 py-2 bg-neon-cyan text-dark-bg font-bold rounded-lg text-sm shadow-[0_0_10px_rgba(0,243,255,0.5)]">ตรวจสอบ</button>
+            </div>
+        </div>
+
+        <div id="screen-stage3" class="hidden w-full h-full flex flex-col items-center justify-center gap-6">
+            <h2 class="text-xl font-bold text-neon-pink text-center">ด่าน 3: ลิ้นหัวใจ</h2>
+            <p class="text-sm text-center text-gray-300">กดปุ่มเมื่อจุดสีแดงวิ่งเข้าโซนสีเขียว (ต้องสำเร็จ 3 ครั้ง)</p>
+            
+            <div class="w-full max-w-xs h-12 bg-gray-800 rounded-full relative overflow-hidden border border-gray-600">
+                <!-- Target Zone -->
+                <div class="absolute top-0 bottom-0 left-[40%] right-[40%] bg-green-500/50 border-x-2 border-green-400"></div>
+                <!-- Moving Indicator -->
+                <div id="reflex-indicator" class="absolute top-0 bottom-0 left-0 w-4 bg-blood-red rounded-full shadow-[0_0_10px_#ff003c]"></div>
+            </div>
+
+            <div class="text-lg font-bold">สำเร็จ: <span id="reflex-score" class="text-neon-cyan">0</span> / 3</div>
+
+            <button id="btn-reflex" class="w-32 h-32 rounded-full glass bg-blood-red/20 border-blood-red text-blood-red font-bold text-xl active:scale-90 active:bg-blood-red/50 transition-all shadow-[0_0_20px_rgba(255,0,60,0.3)] select-none">
+                เปิดลิ้นหัวใจ!
+            </button>
+        </div>
+
+        <div id="screen-stage4" class="hidden w-full h-full flex flex-col items-center justify-start pt-2 gap-2">
+            <h2 class="text-lg font-bold text-neon-cyan text-center">ด่าน 4: ปอดแลกเปลี่ยนแก๊ส</h2>
+            <div class="flex justify-between w-full px-2 text-sm">
+                <span>O2 ที่เก็บได้: <span id="canvas-score" class="text-neon-cyan font-bold">0</span>/5</span>
+                <span>แตะหน้าจอเพื่อบิน</span>
+            </div>
+            
+            <canvas id="game-canvas"></canvas>
+            
+            <div id="canvas-overlay" class="absolute inset-0 flex items-center justify-center bg-black/70 hidden z-10 flex-col gap-4">
+                <div class="text-xl font-bold text-white">ภารกิจล้มเหลว</div>
+                <button onclick="startCanvasGame()" class="px-6 py-2 bg-blood-red rounded-lg font-bold text-white">ลองใหม่</button>
+            </div>
+            <button id="btn-start-canvas" onclick="startCanvasGame()" class="px-6 py-2 bg-neon-cyan text-dark-bg font-bold rounded-full mt-2">
+                เริ่มบิน
+            </button>
+        </div>
+
+        <div id="screen-stage5" class="hidden w-full h-full flex flex-col items-center justify-start pt-4 gap-4 max-w-md mx-auto">
+            <h2 class="text-xl font-bold text-blood-red text-center">ด่าน 5: กำจัดเชื้อโรค</h2>
+            
+            <!-- Boss Area -->
+            <div class="relative w-32 h-32 animate-float">
+                <progress id="boss-hp" value="4" max="4" class="absolute -top-4 w-full h-2"></progress>
+                <svg viewBox="0 0 100 100" id="boss-svg" class="w-full h-full drop-shadow-[0_0_10px_rgba(0,255,0,0.5)] transition-transform">
+                    <circle cx="50" cy="50" r="40" fill="#166534" stroke="#4ade80" stroke-width="3" stroke-dasharray="5,5"/>
+                    <circle cx="35" cy="40" r="8" fill="#ef4444" />
+                    <circle cx="65" cy="40" r="8" fill="#ef4444" />
+                    <path d="M 30 70 Q 50 60 70 70" stroke="#4ade80" stroke-width="4" fill="none" />
+                    <path d="M 10 50 L 0 40 M 90 50 L 100 40 M 50 10 L 50 0 M 50 90 L 50 100" stroke="#4ade80" stroke-width="3" />
+                </svg>
+            </div>
+
+            <div class="glass-panel w-full p-4 rounded-xl mt-4">
+                <h3 id="quiz-question" class="text-sm font-bold text-center mb-4">...</h3>
+                <div id="quiz-options" class="flex flex-col gap-2 text-sm">
+                    <!-- Options generated by JS -->
+                </div>
+            </div>
+        </div>
+
+        <div id="screen-victory" class="hidden w-full h-full flex flex-col items-center justify-center gap-6 z-20">
+            <i class="fa-solid fa-trophy text-6xl text-yellow-400 drop-shadow-[0_0_20px_rgba(253,224,71,0.5)] animate-bounce"></i>
+            <h1 class="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-yellow-600">ภารกิจสำเร็จ!</h1>
+            
+            <div class="glass p-6 rounded-2xl flex flex-col gap-4 text-center w-64">
+                <div>
+                    <div class="text-xs text-gray-400">คะแนนรวม</div>
+                    <div class="text-3xl font-bold text-neon-cyan" id="final-score">0</div>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span>HP คงเหลือ:</span>
+                    <span id="final-hp" class="text-blood-red font-bold">100</span>
+                </div>
+            </div>
+
+            <div id="save-status" class="text-sm text-gray-300 text-center h-8">กำลังบันทึกคะแนน...</div>
+
+            <a id="btn-back-hub" href="index.html" class="hidden px-8 py-3 bg-gradient-to-r from-neon-cyan to-vein-blue rounded-full font-bold text-white shadow-[0_0_20px_rgba(0,102,255,0.4)]">
+                กลับศูนย์รวมเกม
+            </a>
+        </div>
+
+    </main>
+
+    <!-- AI Guide (แสดงเมื่อมีการอธิบาย) -->
+    <div id="ai-guide" class="fixed bottom-20 left-1/2 transform -translate-x-1/2 w-[90%] max-w-sm glass rounded-xl p-3 flex gap-3 items-center z-50 translate-y-[150%] transition-transform duration-500">
+        <div class="w-12 h-12 rounded-full bg-neon-cyan/20 flex items-center justify-center border border-neon-cyan shrink-0">
+            <i class="fa-solid fa-robot text-neon-cyan text-xl"></i>
+        </div>
+        <div class="flex-1">
+            <div class="text-xs text-neon-cyan font-bold mb-1">AI Guide</div>
+            <div id="ai-text" class="text-sm text-white line-clamp-3 leading-tight">ยินดีต้อนรับสู่ภารกิจ!</div>
+        </div>
+        <button onclick="closeAI()" class="self-start text-gray-400 hover:text-white">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="glass z-40 p-2 mx-2 mb-2 rounded-2xl flex justify-around items-center">
+        <button onclick="claimDaily()" class="flex flex-col items-center gap-1 text-gray-400 hover:text-yellow-400 transition-colors w-16">
+            <i class="fa-solid fa-calendar-check text-xl"></i>
+            <span class="text-[10px]">รายวัน</span>
+        </button>
+        <div class="w-12 h-12 bg-dark-bg rounded-full flex items-center justify-center border border-glass-border -mt-6 shadow-lg shadow-black/50">
+            <i class="fa-solid fa-heart-pulse text-blood-red text-2xl animate-heartbeat"></i>
+        </div>
+        <button onclick="showHowToPlay()" class="flex flex-col items-center gap-1 text-gray-400 hover:text-neon-cyan transition-colors w-16">
+            <i class="fa-solid fa-circle-question text-xl"></i>
+            <span class="text-[10px]">วิธีเล่น</span>
+        </button>
+    </nav>
+
+    <!-- Modal วิธีเล่น -->
+    <div id="modal-howto" class="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center hidden opacity-0 transition-opacity">
+        <div class="glass p-6 rounded-2xl max-w-sm w-[90%] flex flex-col gap-4 transform scale-95 transition-transform" id="modal-howto-content">
+            <div class="flex justify-between items-center border-b border-gray-600 pb-2">
+                <h3 class="text-lg font-bold text-neon-cyan">คู่มือพิทักษ์หัวใจ</h3>
+                <button onclick="closeHowToPlay()"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <div class="text-sm space-y-3 max-h-[60vh] overflow-y-auto">
+                <p>เป้าหมาย: เรียนรู้ระบบหัวใจและรอดชีวิตจนจบ 5 ภารกิจ!</p>
+                <ul class="list-disc pl-5 space-y-1 text-gray-300">
+                    <li><strong class="text-white">ด่าน 1:</strong> แตะห้องหัวใจเพื่อเรียนรู้</li>
+                    <li><strong class="text-white">ด่าน 2:</strong> เรียงลำดับเส้นทางเลือด ร่างกาย -> หัวใจขวา -> ปอด -> หัวใจซ้าย -> ร่างกาย</li>
+                    <li><strong class="text-white">ด่าน 3:</strong> กดปุ่มเปิดลิ้นหัวใจให้ตรงจังหวะสีเขียว</li>
+                    <li><strong class="text-white">ด่าน 4:</strong> แตะหน้าจอให้เม็ดเลือดบินเก็บ O2 สีฟ้า (หลบสีเขียว)</li>
+                    <li><strong class="text-white">ด่าน 5:</strong> ตอบคำถามให้ถูกเพื่อโจมตีบอส</li>
+                </ul>
+                <p class="text-blood-red text-xs mt-2">* ตอบผิดหรือพลาด HP จะลดลงนะ!</p>
+            </div>
+            <button onclick="closeHowToPlay()" class="w-full py-2 bg-gray-700 rounded-lg text-white font-bold mt-2">เข้าใจแล้ว</button>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed top-20 left-1/2 transform -translate-x-1/2 flex flex-col gap-2 z-50 pointer-events-none"></div>
+
+    <script>
+        // --- ระบบเสียง (Web Audio API) ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function playTone(freq, type, duration, vol=0.1) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
+        }
+
+        const sfx = {
+            click: () => playTone(600, 'sine', 0.1, 0.1),
+            success: () => { playTone(400, 'sine', 0.1, 0.1); setTimeout(()=>playTone(600, 'sine', 0.2, 0.1), 100); },
+            error: () => playTone(150, 'sawtooth', 0.3, 0.2),
+            damage: () => playTone(100, 'square', 0.4, 0.3),
+            bossHit: () => { playTone(200, 'square', 0.1, 0.2); setTimeout(()=>playTone(150, 'sawtooth', 0.2, 0.2), 100); }
+        };
+
+        // --- Supabase Config (จากโจทย์) ---
+        const SUPABASE_URL = 'https://gtcjixepijvcgvyfpqws.supabase.co';
+        const SUPABASE_KEY = 'YOUR_SUPABASE_ANON_KEY_HERE'; // ใส่ Key จริงในการนำไปใช้งาน
+        const supabaseUrlParam = new URLSearchParams(window.location.search).get('sb_url') || SUPABASE_URL;
+        const supabaseKeyParam = new URLSearchParams(window.location.search).get('sb_key') || SUPABASE_KEY;
+        const db = window.supabase.createClient(supabaseUrlParam, supabaseKeyParam);
+
+        // --- Game State ---
+        let gameState = {
+            hp: 100,
+            score: 0,
+            coins: 0,
+            diamonds: 0,
+            studentId: 'unknown',
+            gameId: 'heart_def',
+            currentStage: 0
+        };
+
+        // UI Elements
+        const elHP = document.getElementById('hp-bar');
+        const elHPText = document.getElementById('hp-text');
+        const elScore = document.getElementById('score-text');
+        const elCoin = document.getElementById('coin-text');
+        const body = document.getElementById('main-body');
+        const damageOverlay = document.getElementById('damage-overlay');
+
+        function initGame() {
+            // ดึงค่าจาก URL
+            const urlParams = new URLSearchParams(window.location.search);
+            gameState.studentId = urlParams.get('student_id') || 'STU' + Math.floor(Math.random()*1000);
+            gameState.gameId = urlParams.get('game_id') || 'heart_def_01';
+
+            updateHUD();
+            
+            // ป้องกันการ double tap zoom บน iOS
+            document.addEventListener('dblclick', function(event) { event.preventDefault(); }, { passive: false });
+        }
+
+        function updateHUD() {
+            elHP.value = gameState.hp;
+            elHPText.innerText = gameState.hp;
+            elScore.innerText = gameState.score;
+            elCoin.innerText = gameState.coins;
+            if(gameState.hp <= 30) elHP.classList.add('[&::-webkit-progress-value]:bg-red-600', 'animate-pulse');
+            else elHP.classList.remove('[&::-webkit-progress-value]:bg-red-600', 'animate-pulse');
+        }
+
+        function addScore(points) {
+            gameState.score += points;
+            updateHUD();
+            // Animation เด้งคะแนน
+            elScore.classList.add('scale-150', 'text-white');
+            setTimeout(() => elScore.classList.remove('scale-150', 'text-white'), 300);
+        }
+
+        function takeDamage(amount) {
+            gameState.hp = Math.max(0, gameState.hp - amount);
+            updateHUD();
+            sfx.damage();
+            
+            // Screen Shake & Red Flash
+            body.classList.add('animate-shake');
+            damageOverlay.classList.add('bg-blood-red/40');
+            
+            setTimeout(() => {
+                body.classList.remove('animate-shake');
+                damageOverlay.classList.remove('bg-blood-red/40');
+            }, 400);
+
+            if (gameState.hp <= 0) {
+                gameOver();
+            }
+        }
+
+        function showToast(msg, type='info') {
+            const toast = document.createElement('div');
+            const colorClass = type === 'success' ? 'bg-green-600' : type === 'error' ? 'bg-red-600' : 'bg-glass-bg border border-glass-border';
+            toast.className = `${colorClass} text-white px-4 py-2 rounded-full text-sm shadow-lg transform transition-all duration-300 opacity-0 translate-y-4`;
+            toast.innerHTML = msg;
+            
+            const container = document.getElementById('toast-container');
+            container.appendChild(toast);
+            
+            requestAnimationFrame(() => {
+                toast.classList.remove('opacity-0', 'translate-y-4');
+            });
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', '-translate-y-4');
+                setTimeout(() => toast.remove(), 300);
+            }, 2000);
+        }
+
+        // --- AI Guide ---
+        let aiTimeout;
+        function showAI(text, duration = 5000) {
+            const ai = document.getElementById('ai-guide');
+            const aiText = document.getElementById('ai-text');
+            aiText.innerHTML = text;
+            ai.classList.remove('translate-y-[150%]');
+            sfx.click();
+            
+            clearTimeout(aiTimeout);
+            if(duration > 0) {
+                aiTimeout = setTimeout(closeAI, duration);
+            }
+        }
+        function closeAI() {
+            document.getElementById('ai-guide').classList.add('translate-y-[150%]');
+        }
+
+        // --- Navigation ---
+        function switchScreen(screenId) {
+            ['dashboard', 'stage1', 'stage2', 'stage3', 'stage4', 'stage5', 'victory'].forEach(id => {
+                document.getElementById(`screen-${id}`).classList.add('hidden');
+            });
+            document.getElementById(`screen-${screenId}`).classList.remove('hidden');
+            gameState.currentStage = screenId;
+        }
+
+        function startGame() {
+            sfx.click();
+            nextStage(1);
+        }
+
+        function nextStage(stageNum) {
+            switchScreen(`stage${stageNum}`);
+            switch(stageNum) {
+                case 1: setupStage1(); break;
+                case 2: setupStage2(); break;
+                case 3: setupStage3(); break;
+                case 4: 
+                    // รอให้ DOM render ก่อนค่อย setup canvas
+                    setTimeout(setupStage4, 100); 
+                    break;
+                case 5: setupStage5(); break;
+                case 'victory': setupVictory(); break;
+            }
+        }
+
+        // --- Stage 1: Exploration ---
+        let exploredChambers = new Set();
+        const chamberData = {
+            'ra': { name: 'ห้องบนขวา (Right Atrium)', desc: 'รับเลือดดำ (มี CO2 สูง) จากร่างกาย', color: 'text-[#00f3ff]' },
+            'rv': { name: 'ห้องล่างขวา (Right Ventricle)', desc: 'ปั๊มเลือดดำส่งไปฟอกที่ปอด', color: 'text-[#00f3ff]' },
+            'la': { name: 'ห้องบนซ้าย (Left Atrium)', desc: 'รับเลือดแดง (มี O2 สูง) ที่ฟอกแล้วจากปอด', color: 'text-[#ff003c]' },
+            'lv': { name: 'ห้องล่างซ้าย (Left Ventricle)', desc: 'ผนังหนาสุด ปั๊มเลือดแดงแรงดันสูงไปเลี้ยงทั่วร่างกาย', color: 'text-[#ff003c]' }
+        };
+
+        function setupStage1() {
+            exploredChambers.clear();
+            document.getElementById('btn-next-stage1').classList.add('hidden');
+            document.getElementById('chamber-info').innerHTML = 'แตะที่ห้องหัวใจทั้ง 4 สีบนหน้าจอเพื่อศึกษาหน้าที่';
+            showAI('ด่าน 1: แตะที่หัวใจแต่ละห้องเพื่อดูว่ามันทำหน้าที่อะไรบ้าง เลือดดำสีฟ้า เลือดแดงสีแดงนะ!');
+        }
+
+        function exploreChamber(id) {
+            sfx.click();
+            exploredChambers.add(id);
+            const data = chamberData[id];
+            
+            // Highlight
+            document.querySelectorAll('.heart-chamber').forEach(el => el.classList.remove('active'));
+            document.getElementById(`chamber-${id}`).classList.add('active');
+
+            // Update Info
+            document.getElementById('chamber-info').innerHTML = `
+                <div class="font-bold ${data.color} mb-1">${data.name}</div>
+                <div>${data.desc}</div>
+            `;
+
+            if (exploredChambers.size === 4) {
+                document.getElementById('btn-next-stage1').classList.remove('hidden');
+                showToast('สำรวจครบแล้ว! ไปด่านต่อไปได้', 'success');
+                addScore(100);
+            }
+        }
+
+        // --- Stage 2: Sequencing ---
+        const correctSequence = ['body', 'right', 'lungs', 'left', 'body2'];
+        let currentSequence = [];
+        const optionsData = [
+            { id: 'left', text: 'หัวใจฝั่งซ้าย (แดง)', icon: 'fa-heart text-blood-red' },
+            { id: 'lungs', text: 'ปอด (ฟอกเลือด)', icon: 'fa-lungs text-gray-300' },
+            { id: 'body', text: 'ร่างกาย (ใช้ O2 หมด)', icon: 'fa-child-reaching text-yellow-500' },
+            { id: 'right', text: 'หัวใจฝั่งขวา (ดำ)', icon: 'fa-heart text-vein-blue' },
+            { id: 'body2', text: 'ร่างกาย (รับ O2)', icon: 'fa-child-reaching text-neon-pink' }
+        ];
+
+        function setupStage2() {
+            currentSequence = [];
+            renderSeqOptions();
+            renderSeqAnswer();
+            showAI('ด่าน 2: เลือดไหลไปทางไหน? เรียงลำดับจาก เลือดดำที่ใช้แล้วจากร่างกาย -> ไปฟอก -> กลับมาส่งให้ร่างกายใหม่');
+        }
+
+        function renderSeqOptions() {
+            const container = document.getElementById('seq-options');
+            container.innerHTML = '';
+            // Shuffle
+            let shuffled = [...optionsData].sort(() => Math.random() - 0.5);
+            
+            shuffled.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'glass px-3 py-2 rounded-lg text-sm flex items-center gap-2 active:scale-95 transition-transform';
+                btn.innerHTML = `<i class="fa-solid ${opt.icon}"></i> ${opt.text}`;
+                
+                // ปิดปุ่มถ้าถูกเลือกไปแล้ว
+                if(currentSequence.includes(opt.id)) {
+                    btn.classList.add('opacity-30', 'pointer-events-none');
+                } else {
+                    btn.onclick = () => selectSeq(opt.id);
+                }
+                container.appendChild(btn);
+            });
+        }
+
+        function selectSeq(id) {
+            sfx.click();
+            currentSequence.push(id);
+            renderSeqOptions();
+            renderSeqAnswer();
+        }
+
+        function renderSeqAnswer() {
+            const container = document.getElementById('seq-answer');
+            container.innerHTML = '';
+            if(currentSequence.length === 0) {
+                container.innerHTML = '<div class="text-center text-gray-500 py-4">ยังไม่ได้เลือก</div>';
+                return;
+            }
+
+            currentSequence.forEach((id, index) => {
+                const opt = optionsData.find(o => o.id === id);
+                const el = document.createElement('div');
+                el.className = 'bg-gray-800 p-2 rounded flex items-center gap-2 text-sm border border-gray-700 animate-[flashRed_0.2s_ease-out]';
+                el.innerHTML = `<span class="bg-gray-700 w-6 h-6 rounded-full flex items-center justify-center text-xs">${index+1}</span> <i class="fa-solid ${opt.icon}"></i> ${opt.text}`;
+                container.appendChild(el);
+            });
+        }
+
+        function resetSequence() {
+            sfx.click();
+            currentSequence = [];
+            renderSeqOptions();
+            renderSeqAnswer();
+        }
+
+        function checkSequence() {
+            if(currentSequence.length !== 5) {
+                showToast('กรุณาเลือกให้ครบ 5 ขั้นตอน', 'error');
+                return;
+            }
+
+            let isCorrect = true;
+            for(let i=0; i<5; i++) {
+                if(currentSequence[i] !== correctSequence[i]) {
+                    isCorrect = false;
+                    break;
+                }
+            }
+
+            if(isCorrect) {
+                sfx.success();
+                addScore(200);
+                showToast('ถูกต้อง! เข้าใจวงจรเลือดแล้ว', 'success');
+                setTimeout(() => nextStage(3), 1500);
+            } else {
+                sfx.error();
+                takeDamage(10);
+                showToast('ผิดลำดับ ลองคิดใหม่นะ!', 'error');
+                showAI('คำใบ้: เริ่มจากร่างกายใช้ O2 หมด -> ส่งเข้าหัวใจขวา -> ไปปอด -> กลับหัวใจซ้าย -> ส่งไปร่างกายใหม่', 6000);
+            }
+        }
+
+        let reflexAnimId;
+        let reflexPos = 0;
+        let reflexDir = 1;
+        let reflexSpeed = 2;
+        let reflexSuccessCount = 0;
+
+        function setupStage3() {
+            reflexSuccessCount = 0;
+            document.getElementById('reflex-score').innerText = '0';
+            showAI('ด่าน 3: ลิ้นหัวใจต้องเปิดปิดให้ตรงจังหวะ! กดปุ่มวงกลมตอนที่ขีดสีแดงวิ่งเข้าโซนสีเขียวตรงกลางนะ');
+            startReflexLoop();
+            
+            const btn = document.getElementById('btn-reflex');
+            // ลบ event เก่าออกก่อนป้องกันการกดเบิ้ล
+            btn.replaceWith(btn.cloneNode(true));
+            document.getElementById('btn-reflex').addEventListener('pointerdown', checkReflex);
+        }
+
+        function startReflexLoop() {
+            const indicator = document.getElementById('reflex-indicator');
+            // ความกว้าง container คร่าวๆ คือ 100%
+            
+            function loop() {
+                reflexPos += reflexDir * reflexSpeed;
+                if(reflexPos > 95 || reflexPos < 0) {
+                    reflexDir *= -1;
+                }
+                indicator.style.left = `${reflexPos}%`;
+                reflexAnimId = requestAnimationFrame(loop);
+            }
+            cancelAnimationFrame(reflexAnimId);
+            loop();
+        }
+
+        function checkReflex() {
+            // โซนสีเขียวอยู่ระหว่าง 40% - 60%
+            if (reflexPos >= 38 && reflexPos <= 62) {
+                // Success
+                sfx.success();
+                reflexSuccessCount++;
+                document.getElementById('reflex-score').innerText = reflexSuccessCount;
+                addScore(50);
+                
+                // เพิ่มความเร็วเล็กน้อย
+                reflexSpeed += 0.5;
+                
+                // เอฟเฟกต์ปุ่ม
+                const btn = document.getElementById('btn-reflex');
+                btn.classList.add('bg-green-500/50', 'border-green-400');
+                setTimeout(() => btn.classList.remove('bg-green-500/50', 'border-green-400'), 200);
+
+                if(reflexSuccessCount >= 3) {
+                    cancelAnimationFrame(reflexAnimId);
+                    showToast('ลิ้นหัวใจทำงานสมบูรณ์!', 'success');
+                    setTimeout(() => nextStage(4), 1500);
+                }
+            } else {
+                // Fail
+                sfx.error();
+                takeDamage(5);
+                showToast('พลาด! จังหวะไม่ตรง', 'error');
+            }
+        }
+
+        const cvs = document.getElementById('game-canvas');
+        const ctx = cvs.getContext('2d');
+        let frames = 0;
+        let flappyReqId;
+        let isFlappyPlaying = false;
+        let o2Collected = 0;
+
+        const flappyState = {
+            bird: { x: 50, y: 150, width: 20, height: 20, gravity: 0.25, jump: 4.6, speed: 0, 
+                    draw: function() {
+                        ctx.fillStyle = '#ff003c';
+                        ctx.beginPath();
+                        ctx.arc(this.x, this.y, this.width/2, 0, Math.PI*2);
+                        ctx.fill();
+                        ctx.strokeStyle = '#fff';
+                        ctx.stroke();
+                    }},
+            items: [],
+            dx: 2 // ความเร็วฉาก
+        };
+
+        function setupStage4() {
+            // ปรับขนาด Canvas ให้พอดีกล่อง
+            cvs.width = cvs.parentElement.clientWidth - 16; 
+            cvs.height = 300;
+            document.getElementById('btn-start-canvas').classList.remove('hidden');
+            document.getElementById('canvas-overlay').classList.add('hidden');
+            
+            // วาดรูปรอ
+            ctx.fillStyle = '#0a1128';
+            ctx.fillRect(0,0, cvs.width, cvs.height);
+            flappyState.bird.y = cvs.height/2;
+            flappyState.bird.speed = 0;
+            flappyState.bird.draw();
+            
+            showAI('ด่าน 4: ปอด! แตะหน้าจอให้เม็ดเลือดแดงบินขึ้นไปเก็บ O2 (สีฟ้า) ให้ครบ 5 อัน ระวังอย่าชนเชื้อโรค (สีเขียว) หรือตกพื้นนะ');
+        }
+
+        function startCanvasGame() {
+            document.getElementById('btn-start-canvas').classList.add('hidden');
+            document.getElementById('canvas-overlay').classList.add('hidden');
+            
+            flappyState.bird.y = cvs.height/2;
+            flappyState.bird.speed = 0;
+            flappyState.items = [];
+            frames = 0;
+            o2Collected = 0;
+            document.getElementById('canvas-score').innerText = o2Collected;
+            isFlappyPlaying = true;
+            
+            // Event listener สำหรับการกระโดด
+            const jumpHandler = (e) => {
+                if(!isFlappyPlaying) return;
+                e.preventDefault();
+                flappyState.bird.speed = -flappyState.bird.jump;
+                sfx.click();
+            };
+            cvs.addEventListener('pointerdown', jumpHandler);
+            
+            cancelAnimationFrame(flappyReqId);
+            flappyLoop();
+        }
+
+        function flappyLoop() {
+            if(!isFlappyPlaying) return;
+            ctx.fillStyle = '#0a1128';
+            ctx.fillRect(0,0, cvs.width, cvs.height);
+            
+            // Bird physics
+            flappyState.bird.speed += flappyState.bird.gravity;
+            flappyState.bird.y += flappyState.bird.speed;
+            
+            // ตกพื้นหรือชนเพดาน
+            if(flappyState.bird.y + flappyState.bird.height/2 >= cvs.height || flappyState.bird.y - flappyState.bird.height/2 <= 0) {
+                canvasGameOver();
+                return;
+            }
+            
+            flappyState.bird.draw();
+            
+            // สร้าง Items (O2 หรือ Germ)
+            if(frames % 90 === 0) {
+                const type = Math.random() > 0.4 ? 'o2' : 'germ';
+                const yPos = Math.max(30, Math.random() * (cvs.height - 30));
+                flappyState.items.push({ x: cvs.width, y: yPos, type: type, radius: 15, passed: false });
+            }
+            
+            // วาดและเช็คชน Items
+            for(let i = 0; i < flappyState.items.length; i++) {
+                let item = flappyState.items[i];
+                item.x -= flappyState.dx;
+                
+                // วาด
+                ctx.beginPath();
+                ctx.arc(item.x, item.y, item.radius, 0, Math.PI*2);
+                if(item.type === 'o2') {
+                    ctx.fillStyle = '#00f3ff';
+                    ctx.shadowBlur = 10;
+                    ctx.shadowColor = '#00f3ff';
+                } else {
+                    ctx.fillStyle = '#4ade80'; // Germ
+                    ctx.shadowBlur = 10;
+                    ctx.shadowColor = '#4ade80';
+                }
+                ctx.fill();
+                ctx.shadowBlur = 0; // reset
+                
+                // Collision Detection (Circle collision)
+                const dx = flappyState.bird.x - item.x;
+                const dy = flappyState.bird.y - item.y;
+                const distance = Math.sqrt(dx*dx + dy*dy);
+                
+                if (distance < (flappyState.bird.width/2 + item.radius) && !item.passed) {
+                    item.passed = true;
+                    if(item.type === 'o2') {
+                        sfx.success();
+                        o2Collected++;
+                        document.getElementById('canvas-score').innerText = o2Collected;
+                        addScore(20);
+                        item.x = -100; // ซ่อนไปเลย
+                        
+                        if(o2Collected >= 5) {
+                            canvasWin();
+                            return;
+                        }
+                    } else {
+                        // ชน Germ
+                        canvasGameOver();
+                        return;
+                    }
+                }
+                
+                // ลบที่เลยขอบ
+                if(item.x + item.radius < 0) {
+                    flappyState.items.shift();
+                    i--;
+                }
+            }
+            
+            frames++;
+            flappyReqId = requestAnimationFrame(flappyLoop);
+        }
+
+        function canvasGameOver() {
+            isFlappyPlaying = false;
+            sfx.error();
+            takeDamage(15);
+            document.getElementById('canvas-overlay').classList.remove('hidden');
+        }
+
+        function canvasWin() {
+            isFlappyPlaying = false;
+            showToast('แลกเปลี่ยนแก๊สสำเร็จ!', 'success');
+            setTimeout(() => nextStage(5), 1500);
+        }
+
+        const quizData = [
+            { q: "โครงสร้างใดกั้นไม่ให้เลือดไหลย้อนกลับในหัวใจ?", options: ["ผนังหัวใจ", "ลิ้นหัวใจ", "เส้นเลือดดำ", "ถุงหุ้มหัวใจ"], ans: 1, exp: "ลิ้นหัวใจ (Heart Valve) ทำหน้าที่เหมือนประตูทางเดียว ป้องกันไม่ให้เลือดไหลย้อนกลับ" },
+            { q: "หัวใจห้องใดมีผนังหนาที่สุดเพราะต้องปั๊มเลือดไปทั่วร่างกาย?", options: ["บนขวา", "ล่างขวา", "บนซ้าย", "ล่างซ้าย"], ans: 3, exp: "ห้องล่างซ้าย (Left Ventricle) ต้องใช้แรงดันมากที่สุดเพื่อบีบตัวส่งเลือดไปเลี้ยงส่วนต่างๆ ของร่างกาย" },
+            { q: "เลือดที่มีออกซิเจนสูง (เลือดดี) เข้าสู่หัวใจห้องใดเป็นห้องแรก?", options: ["บนขวา", "ล่างขวา", "บนซ้าย", "ล่างซ้าย"], ans: 2, exp: "เลือดฟอกแล้วจากปอด จะกลับเข้าสู่หัวใจห้อง บนซ้าย (Left Atrium) เป็นที่แรก" },
+            { q: "อวัยวะใดทำหน้าที่ 'ฟอกเลือดดำ' ให้เป็น 'เลือดแดง'?", options: ["ตับ", "ไต", "ปอด", "ม้าม"], ans: 2, exp: "ปอด ทำหน้าที่แลกเปลี่ยนก๊าซ รับ CO2 ออกและเติม O2 เข้าไปในเม็ดเลือด" }
+        ];
+        let currentQIndex = 0;
+        let bossHP = 4;
+
+        function setupStage5() {
+            currentQIndex = 0;
+            bossHP = 4;
+            document.getElementById('boss-hp').value = bossHP;
+            loadQuestion();
+            showAI('ด่านสุดท้าย! ตอบคำถามเพื่อยิงแสงทำลายบอสเชื้อโรค! ถ้าตอบผิดฉันจะอธิบายให้ฟังนะ');
+        }
+
+        function loadQuestion() {
+            if(currentQIndex >= quizData.length) {
+                // จบเกมชนะ
+                setTimeout(() => nextStage('victory'), 1000);
+                return;
+            }
+
+            const q = quizData[currentQIndex];
+            document.getElementById('quiz-question').innerText = `ข้อ ${currentQIndex+1}: ${q.q}`;
+            
+            const container = document.getElementById('quiz-options');
+            container.innerHTML = '';
+            
+            q.options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'w-full text-left px-4 py-3 glass rounded-lg active:scale-95 transition-transform hover:bg-white/10';
+                btn.innerText = opt;
+                btn.onclick = () => answerQuiz(idx, btn);
+                container.appendChild(btn);
+            });
+        }
+
+        function answerQuiz(selectedIdx, btnElement) {
+            // ปิดการกดปุ่มอื่นชั่วคราว
+            const btns = document.getElementById('quiz-options').querySelectorAll('button');
+            btns.forEach(b => b.classList.add('pointer-events-none'));
+
+            const q = quizData[currentQIndex];
+            if(selectedIdx === q.ans) {
+                // ถูกต้อง
+                btnElement.classList.add('bg-green-600/50', 'border-green-400');
+                sfx.bossHit();
+                addScore(150);
+                
+                // Damage Boss
+                bossHP--;
+                document.getElementById('boss-hp').value = bossHP;
+                const bossSvg = document.getElementById('boss-svg');
+                bossSvg.classList.add('animate-shake', 'scale-90', 'filter', 'hue-rotate-90');
+                setTimeout(() => bossSvg.classList.remove('animate-shake', 'scale-90', 'filter', 'hue-rotate-90'), 500);
+
+                showToast('โจมตีสำเร็จ!', 'success');
+                currentQIndex++;
+                setTimeout(loadQuestion, 1500);
+            } else {
+                // ผิด
+                btnElement.classList.add('bg-red-600/50', 'border-red-400');
+                sfx.error();
+                takeDamage(10);
+                
+                // เฉลย AI
+                showAI(`ผิดจ้า! <br><span class='text-yellow-300'>คำอธิบาย:</span> ${q.exp}`, 0); // โชว์ค้างจนกว่าจะกดปิด
+                
+                // เปลี่ยนข้อหลังจากผู้เล่นอ่านจบ (ในที่นี้หน่วงเวลา 5 วิ หรือเปลี่ยนเมื่อกดปิด)
+                setTimeout(() => {
+                    closeAI();
+                    currentQIndex++;
+                    loadQuestion();
+                }, 6000);
+            }
+        }
+
+        function gameOver() {
+            alert('HP หมด! ภารกิจล้มเหลว');
+            location.reload(); // เริ่มใหม่แบบง่าย
+        }
+
+        async function setupVictory() {
+            document.getElementById('final-score').innerText = gameState.score;
+            document.getElementById('final-hp').innerText = gameState.hp;
+            sfx.success();
+            sfx.success(); // เล่นซ้ำให้ดูอลังการ
+
+            const saveStatus = document.getElementById('save-status');
+            const btnBack = document.getElementById('btn-back-hub');
+
+            try {
+                // บันทึกคะแนนลง Supabase
+                const { data, error } = await db.from('scores').insert([
+                    { 
+                        student_id: gameState.studentId, 
+                        game_id: gameState.gameId, 
+                        score: gameState.score 
+                    }
+                ]);
+
+                if (error) throw error;
+                
+                saveStatus.innerHTML = '<span class="text-green-400"><i class="fa-solid fa-check-circle"></i> บันทึกคะแนนสำเร็จ!</span>';
+                btnBack.classList.remove('hidden');
+
+            } catch (err) {
+                console.error("Supabase Error:", err);
+                // แสดงปุ่มกลับแม้จะบันทึกไม่สำเร็จ เพื่อไม่ให้ผู้เล่นค้าง
+                saveStatus.innerHTML = '<span class="text-red-400"><i class="fa-solid fa-triangle-exclamation"></i> ไม่สามารถบันทึกคะแนนได้ (Demo Mode)</span>';
+                btnBack.classList.remove('hidden');
+            }
+        }
+
+        // --- Other Features ---
+        function claimDaily() {
+            sfx.click();
+            showToast('รับรางวัลรายวัน: 100 เหรียญ', 'success');
+            gameState.coins += 100;
+            updateHUD();
+        }
+
+        function showHowToPlay() {
+            sfx.click();
+            const modal = document.getElementById('modal-howto');
+            modal.classList.remove('hidden');
+            // Allow display block to apply before animating opacity
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                document.getElementById('modal-howto-content').classList.remove('scale-95');
+            }, 10);
+        }
+
+        function closeHowToPlay() {
+            sfx.click();
+            const modal = document.getElementById('modal-howto');
+            modal.classList.add('opacity-0');
+            document.getElementById('modal-howto-content').classList.add('scale-95');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        }
+
+        // เริ่มต้นระบบเมื่อโหลดเสร็จ
+        window.onload = initGame;
+    </script>
+</body>
+</html>
