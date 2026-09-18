@@ -479,14 +479,16 @@
 
         // Input
         function handleInput(e) {
-            if(e) e.preventDefault();
+            // ป้องกัน default behavior (กันหน้าจอเลื่อน) เฉพาะตอนแตะบน Canvas 
+            if(e && e.cancelable) e.preventDefault();
             if (GAME_STATE === 'PLAYING') {
                 bird.flap();
             }
         }
 
-        window.addEventListener('touchstart', handleInput, {passive: false});
-        window.addEventListener('mousedown', handleInput);
+        // เปลี่ยนการรับค่าสัมผัสจาก window เป็น canvas เพื่อไม่ให้ไปบล็อกการทำงานของปุ่ม HTML บนมือถือ
+        canvas.addEventListener('touchstart', handleInput, {passive: false});
+        canvas.addEventListener('mousedown', handleInput);
         window.addEventListener('keydown', (e) => {
             if (e.code === 'Space' || e.code === 'ArrowUp') handleInput(e);
         });
