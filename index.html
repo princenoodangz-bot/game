@@ -200,7 +200,8 @@
         errorMsg.classList.add('hidden');
 
         try {
-            const { data, error } = await supabase
+            // ✅ เติมคำว่า Client ต่อท้ายให้ตรงกับตัวแปรที่เราสร้างไว้
+            const { data, error } = await supabaseClient
                 .from('students')
                 .select('*')
                 .eq('student_code', input)
