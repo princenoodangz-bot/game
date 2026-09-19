@@ -158,14 +158,16 @@
 <!-- ================= JAVASCRIPT ================= -->
 <script>
     // ⚠️ นำ URL และ Key จาก Supabase มาใส่ตรงนี้
-    const SUPABASE_URL = 'https://YOUR_PROJECT_ID.supabase.co';
+    const SUPABASE_URL = 'https://gtcjixepijvcgvyfpqws.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0Y2ppeGVwaWp2Y2d2eWZwcXdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3MjU5NDYsImV4cCI6MjEwMTMwMTk0Nn0.FyEIl4r_LXhLeUxIzHusKzpnp7EdMvjADCdiLEMS-G8';
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    
+    // ✅ เปลี่ยนชื่อตัวแปรเป็น supabaseClient
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     let currentStudent = null;
 
     document.addEventListener('DOMContentLoaded', async () => {
-        // 1. ตรวจสอบว่ามีข้อมูลนักเรียนใน LocalStorage หรือไม่ (ส่งมาจากหน้า Login)
+        // 1. ตรวจสอบว่ามีข้อมูลนักเรียนใน LocalStorage หรือไม่
         const storedStudentStr = localStorage.getItem('schoolquest_student');
         
         if (!storedStudentStr) {
@@ -200,7 +202,8 @@
 
     // ฟังก์ชันดึงคะแนนรวม
     async function fetchTotalXP(studentId) {
-        const { data, error } = await supabase.from('scores').select('score').eq('student_id', studentId);
+        // ✅ เปลี่ยนเป็น supabaseClient
+        const { data, error } = await supabaseClient.from('scores').select('score').eq('student_id', studentId);
         if (data) {
             const total = data.reduce((sum, row) => sum + row.score, 0);
             document.getElementById('player-xp').innerText = total.toLocaleString();
@@ -215,7 +218,8 @@
     async function fetchGames() {
         const container = document.getElementById('games-list-container');
         
-        const { data: games, error } = await supabase
+        // ✅ เปลี่ยนเป็น supabaseClient
+        const { data: games, error } = await supabaseClient
             .from('games')
             .select('*')
             .eq('is_active', true)
