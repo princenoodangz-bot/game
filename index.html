@@ -54,11 +54,12 @@
 
     <script>
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js')
-                    .then(reg => console.log('Service Worker Registered'))
-                    .catch(err => console.log('Service Worker Error', err));
-            });
+            window.addEventListener('DOMContentLoaded', () => {
+        if (localStorage.getItem('schoolquest_student')) {
+            // ✅ แก้ตรงนี้ด้วย
+            window.location.href = 'dashboard_2.html';
+        }
+    });
         }
     </script>
 </head>
@@ -172,10 +173,10 @@
 <!-- ================= JAVASCRIPT ================= -->
 <script>
     // ⚠️ อย่าลืมนำ URL และ Key ของคุณมาใส่ตรงนี้นะครับ
-    const SUPABASE_URL = 'https://YOUR_PROJECT_ID.supabase.co';
+    const SUPABASE_URL = 'https://gtcjixepijvcgvyfpqws.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0Y2ppeGVwaWp2Y2d2eWZwcXdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3MjU5NDYsImV4cCI6MjEwMTMwMTk0Nn0.FyEIl4r_LXhLeUxIzHusKzpnp7EdMvjADCdiLEMS-G8';
     
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     // เช็คก่อนว่าล็อกอินค้างไว้หรือเปล่า (UX ที่ดี)
     window.addEventListener('DOMContentLoaded', () => {
@@ -185,7 +186,7 @@
         }
     });
 
-    // ระบบล็อกอินหลัก
+    // ระบบล็อกอินหลัก (จากบรรทัด 182 ใน index_3.html)
     async function handleLogin(e) {
         e.preventDefault();
         
@@ -205,13 +206,13 @@
                 .eq('student_code', input)
                 .single();
 
-            if (error || !data) throw error; // โยน error เพื่อให้ไปเข้า catch
+            if (error || !data) throw error; 
 
             // บันทึกข้อมูลนักเรียนลง LocalStorage
             localStorage.setItem('schoolquest_student', JSON.stringify(data));
             
-            // เปลี่ยนหน้าเว็บไปยัง Dashboard ทันที
-            window.location.href = 'dashboard.html';
+            // ✅ แก้ตรงนี้: เปลี่ยนเป็นชื่อไฟล์ dashboard_2.html ที่คุณใช้อยู่จริง
+            window.location.href = 'dashboard_2.html';
 
         } catch (err) {
             console.error("Login Failed:", err);
