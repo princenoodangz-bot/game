@@ -136,8 +136,9 @@
             </div>
 
             <!-- กล่องรวมรายชื่อเกม -->
-            <div id="games-list-container" class="space-y-3">
-                <p class="text-center text-white text-sm py-4">กำลังโหลดรายชื่อเกม...</p>
+            <!-- ค้นหาบรรทัดนี้แล้วแก้ class ตามนี้ครับ -->
+            <div id="games-list-container" class="grid grid-cols-2 gap-3">
+                 <p class="text-center text-white text-sm py-4 col-span-2">กำลังโหลดรายชื่อเกม...</p>
             </div>
         </section>
 
@@ -214,11 +215,10 @@
         }
     }
 
-    // ฟังก์ชันดึงเกมมาสร้างการ์ด
+    // ฟังก์ชันดึงเกมมาสร้างการ์ด (นำไปวางทับ fetchGames เดิม)
     async function fetchGames() {
         const container = document.getElementById('games-list-container');
         
-        // ✅ เปลี่ยนเป็น supabaseClient
         const { data: games, error } = await supabaseClient
             .from('games')
             .select('*')
@@ -226,38 +226,48 @@
             .order('created_at', { ascending: false });
 
         if (error) {
-            container.innerHTML = '<p class="text-center text-red-200">ไม่สามารถดึงข้อมูลเกมได้</p>';
+            container.innerHTML = '<p class="text-center text-red-200 col-span-2">ไม่สามารถดึงข้อมูลเกมได้</p>';
             return;
         }
 
         container.innerHTML = ''; // ล้างข้อความ Loading
 
-        const icons = ['🎮', '🧩', '🧪', '🗺️', '👾']; // สุ่มไอคอนประดับ
+        const icons = ['🎮', '🧩', '🧪', '🗺️', '👾']; 
         const colors = ['from-amber-400 to-orange-500', 'from-purple-500 to-indigo-600', 'from-emerald-400 to-teal-600', 'from-cyan-400 to-blue-600'];
 
         games.forEach((game, index) => {
             const icon = icons[index % icons.length];
             const color = colors[index % colors.length];
 
+            // 🌟 ปรับโครงสร้างการ์ดใหม่ให้เหมาะกับ Grid 2 คอลัมน์
             const card = `
-            <article class="bg-white rounded-2xl p-3.5 shadow-md border border-slate-100 flex flex-col space-y-2.5 hover:shadow-lg transition">
-                <div class="flex items-start space-x-3">
-                    <div class="w-12 h-12 bg-gradient-to-br ${color} rounded-xl flex-shrink-0 flex items-center justify-center text-2xl shadow-sm text-white">
-                        ${icon}
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <div class="flex items-center space-x-1.5 flex-wrap gap-y-1">
-                            <h4 class="text-sm font-bold text-slate-900 truncate">${game.game_name}</h4>
-                            <span class="bg-purple-100 text-purple-700 text-[10px] font-bold px-1.5 py-0.2 rounded-md">ใหม่</span>
-                        </div>
-                        <p class="text-xs text-slate-500 mt-0.5 line-clamp-1">${game.description || 'ไม่มีคำอธิบาย'}</p>
-                    </div>
+            <article class="bg-white rounded-2xl p-3 shadow-md border border-slate-100 flex flex-col items-center text-center hover:shadow-lg transition relative overflow-hidden">
+                
+                <!-- ไอคอนเกม -->
+                <div class="w-14 h-14 bg-gradient-to-br ${color} rounded-2xl flex items-center justify-center text-3xl shadow-sm text-white mb-2">
+                    ${icon}
                 </div>
-                <div class="flex items-center justify-end pt-1 border-t border-slate-100">
-                    <a href="${game.game_url}?student_id=${currentStudent.id}" class="text-xs bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-1.5 rounded-xl shadow active:scale-95 transition">
+                
+                <!-- เนื้อหา (ชื่อเกม + คำอธิบาย) -->
+                <div class="flex-1 flex flex-col w-full">
+                    <div class="flex items-center justify-center space-x-1 flex-wrap mb-1">
+                        <h4 class="text-sm font-bold text-slate-900 truncate max-w-full">${game.game_name}</h4>
+                    </div>
+                    <div class="mb-1.5">
+                        <span class="bg-purple-100 text-purple-700 text-[9px] font-bold px-1.5 py-0.5 rounded-md">ใหม่ล่าสุด</span>
+                    </div>
+                    <p class="text-[10px] text-slate-500 line-clamp-2 leading-tight flex-1 mb-2">
+                        ${game.description || 'ไม่มีคำอธิบาย'}
+                    </p>
+                </div>
+                
+                <!-- ปุ่มเล่นเกม (ปรับให้กว้างเต็มกรอบ) -->
+                <div class="w-full mt-auto">
+                    <a href="${game.game_url}?student_id=${currentStudent.id}" class="block w-full text-xs bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded-xl shadow active:scale-95 transition">
                         เล่นเกม ▶
                     </a>
                 </div>
+
             </article>
             `;
             container.innerHTML += card;

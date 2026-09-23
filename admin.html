@@ -2,188 +2,1337 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบจัดการหลังบ้าน</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>ระบบจัดการหลังบ้าน (Admin)</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <!-- Supabase JS (ต้องมีบรรทัดนี้ เบราว์เซอร์ถึงจะรู้จัก supabase) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-</head>
-<body class="bg-gray-100 font-sans">
+    <!-- SheetJS (สำหรับอ่านไฟล์ Excel/CSV) -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com" rel="preconnect">
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome (สำหรับไอคอน) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    <!-- หน้าจอล็อกอินสำหรับครู -->
-    <div id="admin-login" class="flex min-h-screen items-center justify-center p-4">
-        <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-sm text-center">
-            <h1 class="text-2xl font-bold text-indigo-700 mb-2">เข้าสู่ระบบหลังบ้าน</h1>
-            <p class="text-sm text-gray-500 mb-6">สำหรับผู้ดูแลระบบเท่านั้น</p>
-            <input type="password" id="admin-pwd" placeholder="รหัสผ่าน" class="w-full px-4 py-2 border rounded-lg mb-4 text-center">
-            <button onclick="checkAdminPassword()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg">เข้าสู่ระบบ</button>
-            <p id="admin-error" class="text-red-500 text-sm mt-3 hidden">รหัสผ่านไม่ถูกต้อง</p>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Kanit', 'sans-serif'] },
+                    colors: {
+                        admin: {
+                            blue: '#0EA5E9',
+                            darkblue: '#0284C7',
+                            purple: '#8B5CF6',
+                            bg: '#F8FAFC'
+                        }
+                    }
+                }
+            }
+        };
+    </script>
+    <style>
+        body { background-color: #E2E8F0; } /* สีพื้นหลังนอกกรอบมือถือ */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="min-h-screen text-slate-800 antialiased font-sans select-none pb-0">
+
+<!-- 📱 Mobile App Frame Wrapper -->
+<div class="max-w-[430px] mx-auto min-h-screen bg-slate-50 relative overflow-x-hidden flex flex-col shadow-2xl">
+
+    <!-- ================= 1. ADMIN LOGIN VIEW ================= -->
+    <div id="admin-login" class="flex flex-col min-h-screen items-center justify-center p-6 bg-white z-50 absolute inset-0">
+        <div class="w-full text-center max-w-sm">
+            <div class="w-20 h-20 bg-admin-blue text-white rounded-2xl flex items-center justify-center text-4xl mx-auto mb-4 shadow-lg">
+                <i class="fa-solid fa-cube"></i>
+            </div>
+            <h1 class="text-2xl font-bold text-slate-800 mb-1">SchoolQuest <span class="text-admin-purple text-sm uppercase">Admin</span></h1>
+            <p class="text-sm text-slate-500 mb-8">ระบบจัดการเนื้อหาสำหรับคุณครู</p>
+            
+            <div class="space-y-4">
+                <div class="relative">
+                    <i class="fa-solid fa-lock absolute left-4 top-3.5 text-slate-400"></i>
+                    <input type="password" id="admin-pwd" placeholder="รหัสผ่านผู้ดูแลระบบ" class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-admin-blue focus:border-admin-blue transition-all text-center font-bold tracking-widest">
+                </div>
+                
+                <button onclick="checkAdminPassword()" class="w-full bg-admin-blue hover:bg-admin-darkblue text-white font-bold py-3.5 rounded-xl shadow-md transition-transform active:scale-95">
+                    เข้าสู่ระบบ
+                </button>
+                <p id="admin-error" class="text-red-500 text-sm mt-3 hidden font-semibold">รหัสผ่านไม่ถูกต้อง!</p>
+            </div>
+            
+            <a href="index.html" class="block mt-8 text-sm text-slate-400 hover:text-admin-blue underline">กลับหน้าของนักเรียน</a>
         </div>
     </div>
 
-    <!-- หน้า Dashboard หลังบ้าน -->
-    <div id="admin-dashboard" class="hidden min-h-screen flex-col">
-        <header class="bg-indigo-700 text-white p-4 shadow-md flex justify-between items-center">
-            <h1 class="text-xl font-bold">🛠️ ระบบจัดการ - โรงเรียนบ้านเชิงทะเล (ตันติวิท)</h1>
+    <!-- ================= 2. ADMIN DASHBOARD VIEW (ซ่อนตอนแรก) ================= -->
+    <div id="admin-dashboard" class="hidden flex-col w-full pb-24">
+        
+        <!-- 📍 Header (ตามภาพ 1) -->
+        <header class="bg-white px-5 pt-4 pb-3 flex justify-between items-center sticky top-0 z-40 border-b border-slate-100 shadow-sm">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-admin-blue text-white rounded-lg flex items-center justify-center text-sm shadow-sm">
+                    <i class="fa-solid fa-cube"></i>
+                </div>
+                <div class="leading-tight">
+                    <h1 class="text-base font-bold text-slate-800">SchoolQuest <span class="text-[9px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-md uppercase font-extrabold ml-1">ADMIN</span></h1>
+                    <p class="text-[10px] text-slate-500">รร.อนุบาลสาธิต <i class="fa-solid fa-chevron-down text-[8px] ml-0.5"></i></p>
+                </div>
+            </div>
             <div class="flex items-center gap-4">
-                <span class="text-sm">สวัสดี, ครูต้นกล้า</span>
-                <button onclick="location.reload()" class="bg-red-500 hover:bg-red-600 px-3 py-1 rounded text-sm">ออกระบบ</button>
+                <button class="relative text-slate-400 hover:text-slate-600">
+                    <i class="fa-regular fa-bell text-lg"></i>
+                    <span class="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
+                </button>
+                <div class="w-8 h-8 bg-slate-800 text-white rounded-full flex items-center justify-center text-sm shadow-sm">
+                    <i class="fa-solid fa-user-tie"></i>
+                </div>
             </div>
         </header>
 
-        <main class="p-6 max-w-6xl mx-auto w-full grid grid-cols-1 md:grid-cols-2 gap-6">
-            
-            <!-- ส่วนที่ 1: ตารางคะแนน Leaderboard -->
-            <div class="bg-white p-6 rounded-xl shadow-md col-span-1 md:col-span-2">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-bold text-gray-800">🏆 สรุปคะแนนล่าสุด (Leaderboard)</h2>
-                    <button onclick="loadLeaderboard()" class="text-indigo-600 hover:underline text-sm">รีเฟรชข้อมูล</button>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="bg-gray-100 text-gray-700 text-sm">
-                                <th class="p-3 border-b">ชื่อ-สกุล</th>
-                                <th class="p-3 border-b">ชั้นเรียน</th>
-                                <th class="p-3 border-b">เกมที่เล่น</th>
-                                <th class="p-3 border-b">คะแนน</th>
-                                <th class="p-3 border-b">เวลาที่เล่น</th>
-                            </tr>
-                        </thead>
-                        <tbody id="leaderboard-body" class="text-sm">
-                            <tr><td colspan="5" class="p-4 text-center text-gray-500">กำลังโหลดข้อมูล...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- ส่วนที่ 2: เพิ่มรายชื่อนักเรียน -->
-            <div class="bg-white p-6 rounded-xl shadow-md">
-                <h2 class="text-lg font-bold text-gray-800 mb-4">👤 เพิ่มรายชื่อนักเรียนใหม่</h2>
-                <div class="space-y-3">
-                    <input type="text" id="new-std-code" placeholder="รหัสประจำตัว (เช่น 1235)" class="w-full px-3 py-2 border rounded">
-                    <div class="flex gap-2">
-                        <input type="text" id="new-std-fname" placeholder="ชื่อ" class="w-1/2 px-3 py-2 border rounded">
-                        <input type="text" id="new-std-lname" placeholder="นามสกุล" class="w-1/2 px-3 py-2 border rounded">
+        <!-- 📍 Teacher Profile & Main Action (ตามภาพ 1) -->
+        <section class="p-4 space-y-4">
+            <!-- Profile Card -->
+            <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 relative">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-2xl overflow-hidden border-2 border-white shadow-sm">
+                        👨‍🏫
                     </div>
-                    <input type="text" id="new-std-class" placeholder="ชั้นเรียน (เช่น ป.4/1)" class="w-full px-3 py-2 border rounded">
-                    <button onclick="addStudent()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded">บันทึกข้อมูลนักเรียน</button>
+                    <div>
+                        <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">ครูสมชาย สมบัติ <span class="text-[9px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full font-medium"><span class="text-emerald-500 animate-pulse mr-1">●</span>Live Sync</span></h2>
+                        <p class="text-xs text-slate-500">Admin & Teacher • ป.4 - ป.6</p>
+                    </div>
+                </div>
+                <!-- Season Banner -->
+                <div class="bg-purple-100/50 border border-purple-100 rounded-xl p-2.5 flex justify-between items-center">
+                    <div class="flex items-center gap-2">
+                        <span class="text-admin-purple text-sm">✨</span>
+                        <span class="text-xs font-bold text-purple-900">Season 3: ผจญภัยดินแดนคณิต...</span>
+                    </div>
+                    <div class="bg-white px-2 py-1 rounded-lg text-center shadow-sm">
+                        <p class="text-[9px] font-bold text-purple-600 leading-none">Day</p>
+                        <p class="text-[10px] font-bold text-slate-700">24/60</p>
+                    </div>
+                </div>
+                
+                <!-- Big Action Button -->
+                <button onclick="openModal('modal-add-game')" class="w-full mt-4 bg-admin-blue hover:bg-admin-darkblue text-white font-bold py-3.5 rounded-2xl shadow-[0_4px_14px_rgba(14,165,233,0.4)] transition-transform active:scale-95 flex items-center justify-center gap-2 text-lg">
+                <i class="fa-solid fa-circle-plus"></i> เพิ่มเนื้อหาใหม่ (Quick Action)
+                </button>
+            </div>
+
+            <!-- Quick Create Grid -->
+            <div>
+                <div class="flex justify-between items-end mb-2 px-1">
+                    <h3 class="text-sm font-bold text-slate-800">สร้างเนื้อหาด่วน</h3>
+                    <span class="text-[9px] text-slate-400">แตะเพื่อเปิดเครื่องมือ</span>
+                </div>
+                <div class="grid grid-cols-2 gap-2.5">
+                    <button onclick="openModal('modal-add-game')" class="bg-white rounded-xl p-3 flex items-center gap-2.5 shadow-sm border border-slate-100 hover:border-blue-200 transition-colors text-left">
+                        <div class="w-8 h-8 rounded-full bg-blue-50 text-admin-blue flex items-center justify-center shrink-0"><i class="fa-solid fa-gamepad"></i></div>
+                        <div><p class="text-xs font-bold text-slate-700 leading-tight">+ เพิ่มเกมเรียนรู้</p><p class="text-[9px] text-slate-400">สร้างด่านผจญภัย</p></div>
+                        </button>
+                    <button onclick="openModal('modal-manage-students')" class="bg-white rounded-xl p-3 flex items-center gap-2.5 shadow-sm border border-slate-100 hover:border-purple-200 transition-colors text-left">
+                        <div class="w-8 h-8 rounded-full bg-purple-50 text-purple-500 flex items-center justify-center shrink-0"><i class="fa-solid fa-users-gear"></i></div>
+                        <div><p class="text-xs font-bold text-slate-700 leading-tight">จัดการนักเรียน</p><p class="text-[9px] text-slate-400">เพิ่ม, แก้ไข, Excel</p></div>
+                    </button>
+                    <!-- 🌟 Modal: เพิ่ม/แก้ไขภารกิจ -->
+    <div id="modal-add-quest" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] hidden flex items-end sm:items-center justify-center transition-opacity">
+        <div class="bg-white w-full max-w-[430px] rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl transform translate-y-full sm:translate-y-0 transition-transform duration-300 h-[85vh] sm:h-auto overflow-y-auto" id="modal-quest-content">
+            
+            <div class="flex justify-between items-center mb-6">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-amber-100 text-amber-500 rounded-xl flex items-center justify-center text-lg"><i class="fa-solid fa-medal"></i></div>
+                    <div>
+                        <h2 id="modal-quest-title" class="text-lg font-bold text-slate-800 leading-tight">สร้างภารกิจใหม่</h2>
+                        <p class="text-[10px] text-slate-500">กำหนดเป้าหมายและของรางวัล</p>
+                    </div>
+                </div>
+                <button onclick="closeModal('modal-add-quest')" class="w-8 h-8 bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-full flex items-center justify-center transition-colors">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <form id="form-add-quest" onsubmit="submitNewQuest(event)" class="space-y-4">
+                <input type="hidden" id="edit-quest-id">
+                
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">ชื่อภารกิจ <span class="text-red-500">*</span></label>
+                    <input type="text" id="quest-name" required placeholder="เช่น เล่นเกมคณิตศาสตร์ผ่าน 3 ด่าน" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-400 outline-none text-sm font-medium">
+                </div>
+                
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">รายละเอียด (ตัวเลือก)</label>
+                    <textarea id="quest-desc" rows="2" placeholder="คำแนะนำเพิ่มเติมสำหรับนักเรียน..." class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-400 outline-none text-sm resize-none"></textarea>
+                </div>
+                <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">ผูกกับเกม (Target Game) <span class="text-slate-400 font-normal">(ไม่บังคับ)</span></label>
+                <select id="quest-target-game" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-400 outline-none text-sm font-medium">
+                    <option value="">-- ไม่ผูกกับเกม (ภารกิจทั่วไป) --</option>
+                    <!-- รายชื่อเกมจะถูกดึงมาใส่ตรงนี้อัตโนมัติ -->
+                </select>
+            </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">รางวัล: เหรียญทอง (🪙)</label>
+                        <input type="number" id="quest-coins" value="0" min="0" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-400 outline-none text-sm text-center">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">รางวัล: XP (⭐)</label>
+                        <input type="number" id="quest-xp" value="50" min="0" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-400 outline-none text-sm text-center">
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 bg-emerald-50 p-3 rounded-xl border border-emerald-100 mt-2">
+                    <input type="checkbox" id="quest-active" checked class="w-4 h-4 text-emerald-500 border-slate-300 rounded focus:ring-emerald-500">
+                    <label for="quest-active" class="text-xs font-bold text-emerald-700 cursor-pointer">เปิดใช้งานภารกิจนี้ทันที</label>
+                </div>
+
+                <div class="pt-4 mt-4 border-t border-slate-100">
+                    <button type="submit" id="btn-save-quest" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3.5 rounded-xl shadow-md transition-transform active:scale-95 flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-floppy-disk"></i> บันทึกภารกิจ
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+                    <button onclick="openModal('modal-add-quest')" class="bg-white rounded-xl p-3 flex items-center gap-2.5 shadow-sm border border-slate-100 hover:border-amber-200 transition-colors text-left">
+                        <div class="w-8 h-8 rounded-full bg-amber-50 text-amber-500 flex items-center justify-center shrink-0"><i class="fa-solid fa-medal"></i></div>
+                        <div><p class="text-xs font-bold text-slate-700 leading-tight">+ สร้างภารกิจ</p><p class="text-[9px] text-slate-400">การบ้านรายวัน</p></div>
+                    </button>
+                    <button class="bg-white rounded-xl p-3 flex items-center gap-2.5 shadow-sm border border-slate-100 hover:border-sky-200 transition-colors text-left">
+                        <div class="w-8 h-8 rounded-full bg-sky-50 text-sky-500 flex items-center justify-center shrink-0"><i class="fa-solid fa-bag-shopping"></i></div>
+                        <div><p class="text-xs font-bold text-slate-700 leading-tight">+ เพิ่มของในร้าน</p><p class="text-[9px] text-slate-400">ไอเทม & อุปกรณ์</p></div>
+                    </button>
+                    <button class="bg-white rounded-xl p-3 flex items-center gap-2.5 shadow-sm border border-slate-100 hover:border-indigo-200 transition-colors text-left col-span-2">
+                        <div class="w-8 h-8 rounded-full bg-indigo-50 text-indigo-500 flex items-center justify-center shrink-0"><i class="fa-solid fa-shirt"></i></div>
+                        <div><p class="text-xs font-bold text-slate-700 leading-tight">+ สกิน & ตัวละคร</p><p class="text-[9px] text-slate-400">อวตารรางวัลพิเศษ</p></div>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <div class="w-full h-1.5 bg-slate-200/50 my-2"></div>
+
+        <!-- 📍 Stats Overview (ตามภาพ 2) -->
+        <section class="p-4 space-y-3">
+            <div class="flex justify-between items-end px-1">
+                <h3 class="text-base font-bold text-slate-800 border-l-4 border-admin-purple pl-2 leading-none">สถิติภาพรวมโรงเรียน</h3>
+                <span class="text-[9px] text-slate-400">อัปเดตทุก 30 วินาที</span>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-3">
+                <div class="bg-white rounded-2xl p-3.5 shadow-sm border border-slate-100 relative">
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="w-7 h-7 rounded-full bg-blue-50 text-admin-blue flex items-center justify-center"><i class="fa-solid fa-gamepad text-xs"></i></div>
+                        <span class="text-[9px] font-medium bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded">สัปดาห์นี้</span>
+                    </div>
+                    <h4 class="text-2xl font-black text-slate-800 leading-none mb-1">12</h4>
+                    <p class="text-[10px] font-medium text-slate-500">เกมการเรียนรู้</p>
+                    <p class="text-[9px] text-slate-400 mt-2">เปิด <span class="font-bold text-slate-600">4</span> • ร่าง 2</p>
+                </div>
+                
+                <div class="bg-white rounded-2xl p-3.5 shadow-sm border border-slate-100 relative">
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="w-7 h-7 rounded-full bg-purple-50 text-purple-500 flex items-center justify-center"><i class="fa-solid fa-users text-xs"></i></div>
+                        <span class="text-[9px] font-bold bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded animate-pulse">ออนไลน์ 42</span>
+                    </div>
+                    <h4 class="text-2xl font-black text-slate-800 leading-none mb-1">148</h4>
+                    <p class="text-[10px] font-medium text-slate-500">นักเรียนทั้งหมด</p>
+                    <p class="text-[9px] text-slate-400 mt-2">ส่งงาน <span class="font-bold text-emerald-500">88%</span></p>
+                </div>
+
+                <div class="bg-white rounded-2xl p-3.5 shadow-sm border border-slate-100 relative">
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="w-7 h-7 rounded-full bg-amber-50 text-amber-500 flex items-center justify-center"><i class="fa-solid fa-clipboard-check text-xs"></i></div>
+                        <span class="text-[9px] font-medium bg-red-50 text-red-500 px-1.5 py-0.5 rounded">รอตรวจ 13</span>
+                    </div>
+                    <h4 class="text-2xl font-black text-slate-800 leading-none mb-1">18</h4>
+                    <p class="text-[10px] font-medium text-slate-500">ภารกิจ & การบ้าน</p>
+                    <p class="text-[9px] text-slate-400 mt-2">ตรวจเสร็จ <span class="font-bold text-slate-600">62%</span></p>
+                </div>
+
+                <div class="bg-white rounded-2xl p-3.5 shadow-sm border border-slate-100 relative">
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="w-7 h-7 rounded-full bg-sky-50 text-sky-500 flex items-center justify-center"><i class="fa-solid fa-box-open text-xs"></i></div>
+                        <span class="text-[9px] font-medium bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded">ขายดี 9</span>
+                    </div>
+                    <h4 class="text-2xl font-black text-slate-800 leading-none mb-1">34</h4>
+                    <p class="text-[10px] font-medium text-slate-500">ไอเทมในคลัง</p>
+                    <p class="text-[9px] text-slate-400 mt-2">6 ฮีโร่ • 10 สัตว์เลี้ยง</p>
                 </div>
             </div>
 
-            <!-- ส่วนที่ 3: เพิ่มเกมใหม่ -->
-            <div class="bg-white p-6 rounded-xl shadow-md">
-                <h2 class="text-lg font-bold text-gray-800 mb-4">🎮 เพิ่มเกมใหม่เข้าระบบ</h2>
-                <div class="space-y-3">
-                    <input type="text" id="new-game-name" placeholder="ชื่อเกม" class="w-full px-3 py-2 border rounded">
-                    <input type="text" id="new-game-desc" placeholder="คำอธิบายสั้นๆ" class="w-full px-3 py-2 border rounded">
-                    <input type="text" id="new-game-url" placeholder="URL ไฟล์เกม (เช่น game-template.html)" class="w-full px-3 py-2 border rounded">
-                    <button onclick="addGame()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded">เผยแพร่เกม</button>
+            <!-- Economy Summary -->
+            <div class="bg-white rounded-2xl p-3 flex justify-between items-center shadow-sm border border-slate-100">
+                <div class="flex items-center gap-2 flex-1 justify-center border-r border-slate-100">
+                    <div class="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center text-xs">🪙</div>
+                    <div>
+                        <p class="text-sm font-bold text-slate-800 leading-none">42,500</p>
+                        <p class="text-[8px] text-slate-500">เหรียญทองหมุนเวียน</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 flex-1 justify-center">
+                    <div class="w-6 h-6 rounded-full bg-cyan-100 flex items-center justify-center text-xs">💎</div>
+                    <div>
+                        <p class="text-sm font-bold text-slate-800 leading-none">1,280</p>
+                        <p class="text-[8px] text-slate-500">เพชรหมุนเวียน</p>
+                    </div>
                 </div>
             </div>
+        </section>
 
-        </main>
+        <!-- 📍 Game List & Filters (ตามภาพ 3) -->
+        <section class="px-4 pb-4">
+            <!-- Scrollable Tabs -->
+            <div class="flex gap-2 overflow-x-auto no-scrollbar py-2 mb-2">
+                <button class="bg-slate-800 text-white px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap flex items-center gap-1.5 shadow-md">
+                    <i class="fa-solid fa-gamepad"></i> คลังเกม (12)
+                </button>
+                <button class="bg-white text-slate-600 border border-slate-200 px-4 py-1.5 rounded-full text-xs font-medium whitespace-nowrap flex items-center gap-1.5 hover:bg-slate-50">
+                    <i class="fa-solid fa-users"></i> นักเรียน (148)
+                </button>
+                <button class="bg-white text-slate-600 border border-slate-200 px-4 py-1.5 rounded-full text-xs font-medium whitespace-nowrap flex items-center gap-1.5 hover:bg-slate-50">
+                    <i class="fa-solid fa-clipboard-list"></i> ภารกิจ
+                </button>
+            </div>
+
+            <!-- Filter Dropdown -->
+            <div class="flex items-center justify-between mb-4">
+                <span class="text-[10px] text-slate-500 flex items-center gap-1"><i class="fa-solid fa-filter"></i> ตัวกรอง:</span>
+                <select class="text-xs bg-white border border-slate-200 rounded-lg px-2 py-1 font-medium text-slate-700 outline-none">
+                    <option>ทุกระดับชั้น (ป.4 - ป.6)</option>
+                    <option>ป.4</option>
+                    <option>ป.5</option>
+                    <option>ป.6</option>
+                </select>
+            </div>
+
+            <!-- List Header -->
+            <div class="flex justify-between items-end mb-3 px-1">
+                <h3 class="text-base font-bold text-slate-800">รายการเกมที่กำลังจัดแสดง</h3>
+                <a href="#" class="text-[10px] font-bold text-admin-blue hover:underline">ดูทั้งหมด</a>
+            </div>
+
+            <!-- 🌟 Modal: จัดการภารกิจทั้งหมด (Manage Quests) -->
+    <div id="modal-manage-quests" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] hidden flex items-end sm:items-center justify-center transition-opacity">
+        <div class="bg-white w-full max-w-[430px] rounded-t-3xl sm:rounded-3xl shadow-2xl transform translate-y-full sm:translate-y-0 transition-transform duration-300 h-[90vh] sm:h-[80vh] flex flex-col">
+            
+            <div class="flex justify-between items-center p-5 border-b border-slate-100 shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-amber-100 text-amber-600 rounded-xl flex items-center justify-center text-lg"><i class="fa-solid fa-list-check"></i></div>
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-800 leading-tight">จัดการภารกิจทั้งหมด</h2>
+                        <p class="text-[10px] text-slate-500">เปิด/ปิด, แก้ไข และลบภารกิจ</p>
+                    </div>
+                </div>
+                <button onclick="closeModal('modal-manage-quests')" class="w-8 h-8 bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-full flex items-center justify-center transition-colors">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="p-5 flex-1 overflow-y-auto space-y-4 bg-slate-50">
+                <button onclick="openModal('modal-add-quest')" class="w-full bg-amber-500 text-white font-bold py-3 rounded-xl shadow-sm flex items-center justify-center gap-2 hover:bg-amber-600 active:scale-95 transition-transform">
+                    <i class="fa-solid fa-plus"></i> สร้างภารกิจใหม่
+                </button>
+                
+                <input type="text" id="search-quest" placeholder="ค้นหาชื่อภารกิจ..." onkeyup="filterManageQuests()" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg outline-none text-xs">
+
+                <div class="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                    <div class="max-h-[60vh] overflow-y-auto" id="manage-quests-list">
+                        <div class="p-4 text-center text-xs text-slate-500">กำลังโหลด...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+            <!-- Game Cards Stack -->
+            <div class="space-y-3" id="admin-games-container">
+                <div class="p-8 text-center text-xs text-slate-500 bg-white rounded-2xl border border-slate-100">
+                    กำลังโหลดข้อมูลเกม...
+                </div>
+            </div>
+                
+                
+
+            </div>
+        </section>
+
+        <!-- 📍 World Map Section (ตามภาพ 5) -->
+        <section class="px-4 pb-4">
+            <div class="bg-white rounded-3xl p-1.5 shadow-sm border border-slate-200 relative">
+                <div class="flex items-center gap-2 p-3">
+                    <div class="w-8 h-8 rounded-lg bg-blue-50 text-admin-blue flex items-center justify-center text-lg"><i class="fa-solid fa-map-location-dot"></i></div>
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-800 leading-tight">แผนที่เส้นทางการเรียนรู้</h3>
+                        <p class="text-[10px] text-slate-500">3 แคว้นวิชา • 24 World Nodes ที่เปิดแล้ว</p>
+                    </div>
+                </div>
+                
+                <div class="relative w-full h-40 bg-slate-800 rounded-2xl overflow-hidden mb-1">
+                    <!-- Placeholder Image for Map -->
+                    <img src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=600&auto=format&fit=crop" class="w-full h-full object-cover opacity-70" alt="World Map">
+                    <div class="absolute bottom-3 left-3 bg-admin-darkblue text-white text-[9px] font-bold px-2 py-1 rounded-md shadow-md">แผนผังเกาะวิชาการ</div>
+                    <div class="absolute bottom-3 right-3 text-white text-[10px] font-bold drop-shadow-md">อัตราผ่านรวม 84%</div>
+                </div>
+                
+                <button class="absolute bottom-3 left-1/2 -translate-x-1/2 w-11/12 bg-admin-purple hover:bg-purple-600 text-white text-xs font-bold py-3 rounded-xl shadow-lg flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-map"></i> แก้ไข World Nodes & เส้นทางเควสต์ <i class="fa-solid fa-arrow-right ml-1"></i>
+                </button>
+            </div>
+        </section>
+        
+        <div class="h-10"></div> <!-- Spacing for bottom nav -->
+
     </div>
 
-    <script>
-        // 1. ตั้งค่าการเชื่อมต่อ Supabase
-        const SUPABASE_URL = 'https://gtcjixepijvcgvyfpqws.supabase.co'; 
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0Y2ppeGVwaWp2Y2d2eWZwcXdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3MjU5NDYsImV4cCI6MjEwMTMwMTk0Nn0.FyEIl4r_LXhLeUxIzHusKzpnp7EdMvjADCdiLEMS-G8'; 
-        
-        // แก้ไข: เปลี่ยนชื่อตัวแปรเป็น supabaseClient
-        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    <!-- ================= BOTTOM NAVIGATION ================= -->
+    <nav id="admin-bottom-nav" class="hidden fixed bottom-0 left-0 right-0 max-w-[430px] mx-auto bg-white border-t border-slate-200 px-2 pt-2 pb-5 z-50 rounded-t-2xl shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+        <div class="flex items-center justify-around">
+            <a href="#" class="flex flex-col items-center gap-1 text-admin-blue w-14">
+                <i class="fa-solid fa-border-all text-xl"></i>
+                <span class="text-[9px] font-bold">ภาพรวม</span>
+            </a>
+            <a href="#" class="flex flex-col items-center gap-1 text-slate-400 hover:text-slate-600 w-14 transition-colors">
+                <i class="fa-solid fa-gamepad text-xl"></i>
+                <span class="text-[9px] font-medium">จัดการเกม</span>
+            </a>
+            <a href="#" class="flex flex-col items-center gap-1 text-slate-400 hover:text-slate-600 w-14 transition-colors">
+                <i class="fa-solid fa-users text-xl"></i>
+                <span class="text-[9px] font-medium">นักเรียน</span>
+            </a>
+            <button onclick="openModal('modal-manage-quests')" class="flex flex-col items-center gap-1 text-slate-400 hover:text-slate-600 w-14 transition-colors">
+                <i class="fa-solid fa-clipboard-check text-xl"></i>
+                <span class="text-[9px] font-medium">ภารกิจ</span>
+            </button>
+            <a href="#" class="flex flex-col items-center gap-1 text-slate-400 hover:text-slate-600 w-14 transition-colors">
+                <i class="fa-solid fa-border-none text-xl"></i>
+                <span class="text-[9px] font-medium">เพิ่มเติม</span>
+            </a>
+        </div>
+    </nav>
 
-        // 2. ฟังก์ชันตรวจสอบรหัสผ่าน (รหัสผ่านเริ่มต้นคือ admin123)
-        function checkAdminPassword() {
-            const pwd = document.getElementById('admin-pwd').value;
-            if (pwd === 'admin123') {
-                document.getElementById('admin-login').classList.add('hidden');
-                document.getElementById('admin-dashboard').classList.remove('hidden');
-                loadLeaderboard(); // โหลดข้อมูลคะแนนทันทีที่เข้าสู่ระบบ
-            } else {
-                document.getElementById('admin-error').classList.remove('hidden');
-            }
+</div>
+<!-- ================= MODALS (POPUPS) ================= -->
+    
+    <!-- 1. Modal: เพิ่มเกมใหม่ -->
+    <div id="modal-add-game" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] hidden flex items-end sm:items-center justify-center transition-opacity">
+        <div class="bg-white w-full max-w-[430px] rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl transform translate-y-full sm:translate-y-0 transition-transform duration-300 h-[85vh] sm:h-auto overflow-y-auto" id="modal-game-content">
+            
+            <div class="flex justify-between items-center mb-6">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-blue-100 text-admin-blue rounded-xl flex items-center justify-center text-lg"><i class="fa-solid fa-gamepad"></i></div>
+                    <div>
+                        <h2 id="modal-game-title" class="text-lg font-bold text-slate-800 leading-tight">เพิ่มเกมเรียนรู้ใหม่</h2>
+                        <p class="text-[10px] text-slate-500">สร้างด่านผจญภัยให้นักเรียน</p>
+                    </div>
+                </div>
+                <button onclick="closeModal('modal-add-game')" class="w-8 h-8 bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-full flex items-center justify-center transition-colors">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <form id="form-add-game" onsubmit="submitNewGame(event)" class="space-y-4">
+                <input type="hidden" id="edit-game-id">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">ชื่อเกม (Game Name) <span class="text-red-500">*</span></label>
+                    <input type="text" id="game-name" required placeholder="เช่น ศึกประลองเวทท่องศัพท์ ป.5" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-admin-blue outline-none text-sm font-medium">
+                </div>
+                
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">คำอธิบายสั้นๆ (Description)</label>
+                    <textarea id="game-desc" rows="2" placeholder="อธิบายวิธีการเล่นหรือเนื้อหาวิชา..." class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-admin-blue outline-none text-sm resize-none"></textarea>
+                </div>
+                
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">URL ของตัวเกม (Game URL) <span class="text-red-500">*</span></label>
+                    <input type="text" id="game-url" required placeholder="เช่น games/math-battle.html" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-admin-blue outline-none text-sm font-medium">
+                    <p class="text-[9px] text-slate-500 mt-1"><i class="fa-solid fa-circle-info"></i> ใส่ชื่อไฟล์ที่อยู่ในโฟลเดอร์เดียวกัน หรือ URL ภายนอก</p>
+                </div>
+
+                <div class="flex items-center gap-2 bg-emerald-50 p-3 rounded-xl border border-emerald-100 mt-2">
+                    <input type="checkbox" id="game-active" checked class="w-4 h-4 text-emerald-500 border-slate-300 rounded focus:ring-emerald-500">
+                    <label for="game-active" class="text-xs font-bold text-emerald-700 cursor-pointer">เปิดให้นักเรียนเข้าเล่นได้ทันที (Active)</label>
+                </div>
+
+                <div class="pt-4 mt-4 border-t border-slate-100">
+                    <button type="submit" id="btn-save-game" class="w-full bg-admin-blue hover:bg-admin-darkblue text-white font-bold py-3.5 rounded-xl shadow-md transition-transform active:scale-95 flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-floppy-disk"></i> บันทึกข้อมูลเกม
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 2. Modal: เพิ่มนักเรียนใหม่ -->
+    <div id="modal-add-student" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] hidden flex items-end sm:items-center justify-center transition-opacity">
+        <div class="bg-white w-full max-w-[430px] rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl transform translate-y-full sm:translate-y-0 transition-transform duration-300 h-[85vh] sm:h-auto overflow-y-auto" id="modal-student-content">
+            
+            <div class="flex justify-between items-center mb-6">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center text-lg"><i class="fa-solid fa-user-plus"></i></div>
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-800 leading-tight">เพิ่มนักเรียนใหม่</h2>
+                        <p class="text-[10px] text-slate-500">สร้างบัญชีผู้เล่นสำหรับนักเรียน</p>
+                    </div>
+                </div>
+                <button onclick="closeModal('modal-add-student')" class="w-8 h-8 bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-full flex items-center justify-center transition-colors">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <form id="form-add-student" onsubmit="submitNewStudent(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">รหัสประจำตัว (ใช้สำหรับ Login) <span class="text-red-500">*</span></label>
+                    <input type="text" id="std-code" required placeholder="เช่น 12345" inputmode="numeric" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-400 outline-none text-sm font-bold text-center tracking-widest">
+                </div>
+                
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">ชื่อจริง <span class="text-red-500">*</span></label>
+                        <input type="text" id="std-fname" required placeholder="ด.ช.ต้นกล้า" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-400 outline-none text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">นามสกุล <span class="text-red-500">*</span></label>
+                        <input type="text" id="std-lname" required placeholder="รักเรียน" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-400 outline-none text-sm">
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">ชั้นเรียน / ห้อง <span class="text-red-500">*</span></label>
+                    <input type="text" id="std-class" required placeholder="เช่น ป.4/1" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-400 outline-none text-sm font-medium">
+                </div>
+
+                <div class="pt-4 mt-4 border-t border-slate-100">
+                    <button type="submit" id="btn-save-student" class="w-full bg-purple-500 hover:bg-purple-600 text-white font-bold py-3.5 rounded-xl shadow-md transition-transform active:scale-95 flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-user-check"></i> สร้างบัญชีนักเรียน
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <!-- 3. Modal: จัดการนักเรียน (รายบุคคล & Excel) -->
+    <div id="modal-manage-students" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] hidden flex items-end sm:items-center justify-center transition-opacity">
+        <div class="bg-white w-full max-w-[430px] rounded-t-3xl sm:rounded-3xl shadow-2xl transform translate-y-full sm:translate-y-0 transition-transform duration-300 h-[90vh] sm:h-[80vh] flex flex-col" id="modal-manage-students-content">
+            
+            <!-- Header ของ Modal -->
+            <div class="flex justify-between items-center p-5 border-b border-slate-100 shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center text-lg"><i class="fa-solid fa-users-gear"></i></div>
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-800 leading-tight">จัดการรายชื่อนักเรียน</h2>
+                        <p class="text-[10px] text-slate-500">เพิ่ม, แก้ไข และอัปโหลดไฟล์ Excel</p>
+                    </div>
+                </div>
+                <button onclick="closeModal('modal-manage-students')" class="w-8 h-8 bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-full flex items-center justify-center transition-colors">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- พื้นที่ใช้งานหลัก (เลื่อนขึ้นลงได้) -->
+            <div class="p-5 flex-1 overflow-y-auto space-y-6 bg-slate-50">
+                
+                <!-- ส่วนที่ 1: นำเข้าด้วย Excel -->
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
+                    <h3 class="text-sm font-bold text-slate-800 mb-2 flex items-center gap-2"><i class="fa-solid fa-file-excel text-green-600"></i> นำเข้านักเรียนหลายคน (Excel)</h3>
+                    <p class="text-[10px] text-slate-500 mb-3">ระบบจะอัปโหลดข้อมูลจากไฟล์ Excel โดยไม่ลบข้อมูลเก่าที่มีอยู่</p>
+                    
+                    <div class="flex gap-2 mb-3">
+                        <button onclick="downloadTemplate()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2 px-3 rounded-lg border border-slate-300 flex-1 flex items-center justify-center gap-1">
+                            <i class="fa-solid fa-download"></i> โหลดไฟล์ต้นแบบ
+                        </button>
+                        
+                        <label for="excel-upload" class="text-xs bg-green-50 text-green-700 hover:bg-green-100 font-semibold py-2 px-3 rounded-lg border border-green-200 cursor-pointer flex-1 flex items-center justify-center gap-1 text-center">
+                            <i class="fa-solid fa-upload"></i> อัปโหลดไฟล์ Excel
+                        </label>
+                        <input type="file" id="excel-upload" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleExcelUpload(event)">
+                    </div>
+                    <div id="excel-status" class="text-[10px] font-bold text-center hidden"></div>
+                </div>
+
+                <!-- ส่วนที่ 2: เพิ่มนักเรียนทีละคน (ย้ายมาจาก Modal เดิม) -->
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
+                    <h3 class="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2"><i class="fa-solid fa-user-plus text-admin-blue"></i> เพิ่มทีละคน / แก้ไข</h3>
+                    <form id="form-manage-single" onsubmit="submitSingleStudent(event)" class="space-y-3">
+                        <!-- ซ่อน ID ไว้ใช้ตอนอัปเดตข้อมูล -->
+                        <input type="hidden" id="edit-std-id">
+                        
+                        <div>
+                            <input type="text" id="edit-std-code" required placeholder="รหัสนักเรียน (เช่น 12345)" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-admin-blue outline-none text-xs">
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="text" id="edit-std-fname" required placeholder="ชื่อ (ด.ช.ต้นกล้า)" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-admin-blue outline-none text-xs">
+                            <input type="text" id="edit-std-lname" required placeholder="นามสกุล" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-admin-blue outline-none text-xs">
+                        </div>
+                        <div class="flex gap-2">
+                            <input type="text" id="edit-std-class" required placeholder="ชั้นเรียน (ป.4/1)" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-admin-blue outline-none text-xs">
+                            
+                            <button type="submit" id="btn-save-single" class="bg-admin-blue hover:bg-admin-darkblue text-white font-bold px-4 rounded-lg shrink-0 text-xs shadow-sm transition-colors">
+                                บันทึก
+                            </button>
+                            <button type="button" onclick="resetSingleForm()" id="btn-cancel-edit" class="bg-slate-200 text-slate-600 font-bold px-3 rounded-lg shrink-0 text-xs hidden">
+                                ยกเลิก
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- ส่วนที่ 3: รายชื่อนักเรียนปัจจุบัน -->
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="text-sm font-bold text-slate-800">รายชื่อในระบบ</h3>
+                        <button onclick="loadStudentsList()" class="text-[10px] text-admin-blue font-bold hover:underline"><i class="fa-solid fa-rotate"></i> รีเฟรช</button>
+                    </div>
+                    
+                    <!-- กล่องค้นหา -->
+                    <input type="text" id="search-student" placeholder="ค้นหา รหัส, ชื่อ หรือชั้นเรียน..." onkeyup="filterStudents()" class="w-full px-3 py-2 mb-3 bg-white border border-slate-200 rounded-lg outline-none text-xs">
+
+                    <!-- รายการนักเรียน -->
+                    <div class="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                        <div class="max-h-60 overflow-y-auto" id="student-list-container">
+                            <div class="p-4 text-center text-xs text-slate-500">กำลังโหลด...</div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+<script>
+    // ==========================================
+    // 1. ตั้งค่าการเชื่อมต่อ Supabase (ต้องอยู่บนสุดเสมอ)
+    // ==========================================
+    const SUPABASE_URL = 'https://gtcjixepijvcgvyfpqws.supabase.co'; 
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0Y2ppeGVwaWp2Y2d2eWZwcXdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3MjU5NDYsImV4cCI6MjEwMTMwMTk0Nn0.FyEIl4r_LXhLeUxIzHusKzpnp7EdMvjADCdiLEMS-G8'; 
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // ==========================================
+    // 2. ระบบ Login & ตรวจสอบสถานะ
+    // ==========================================
+    window.addEventListener('DOMContentLoaded', () => {
+        if (localStorage.getItem('admin_logged_in')) {
+            showDashboard();
         }
+    });
 
-        // 3. ฟังก์ชันดึงคะแนน 
-        async function loadLeaderboard() {
-            const tbody = document.getElementById('leaderboard-body');
-            tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-gray-500">กำลังโหลด...</td></tr>';
+    function checkAdminPassword() {
+        const pwd = document.getElementById('admin-pwd').value;
+        const btn = document.querySelector('#admin-login button');
+        const error = document.getElementById('admin-error');
 
-            try {
-                // แก้ไข: ใช้ supabaseClient
-                const { data, error } = await supabaseClient
-                    .from('scores')
-                    .select(`
-                        score,
-                        played_at,
-                        students ( first_name, last_name, class_room ),
-                        games ( game_name )
-                    `)
-                    .order('score', { ascending: false })
-                    .limit(20);
+        if (pwd === 'admin123') {
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> กำลังเข้าสู่ระบบ...';
+            localStorage.setItem('admin_logged_in', 'true');
+            setTimeout(() => {
+                showDashboard();
+            }, 500);
+        } else {
+            error.classList.remove('hidden');
+            document.getElementById('admin-pwd').classList.add('border-red-500', 'ring-red-200');
+        }
+    }
 
+    function showDashboard() {
+        document.getElementById('admin-login').classList.add('hidden');
+        document.getElementById('admin-dashboard').classList.remove('hidden');
+        document.getElementById('admin-bottom-nav').classList.remove('hidden');
+        document.body.classList.remove('overflow-hidden');
+        
+        // เมื่อล็อกอินเสร็จ ให้โหลดข้อมูล
+        adminLoadGames(); 
+        updateDashboardStats();
+    }
+
+    function logoutAdmin() {
+        localStorage.removeItem('admin_logged_in');
+        window.location.reload();
+    }
+
+    // ==========================================
+    // 3. ระบบสถิติภาพรวม
+    // ==========================================
+    async function updateDashboardStats() {
+        try {
+            const { count: gamesCount } = await supabaseClient.from('games').select('*', { count: 'exact', head: true });
+            document.getElementById('stat-total-games').innerText = gamesCount || 0;
+
+            const { count: studentsCount } = await supabaseClient.from('students').select('*', { count: 'exact', head: true });
+            document.getElementById('stat-total-students').innerText = studentsCount || 0;
+        } catch (error) {
+            console.error("Error fetching stats:", error);
+        }
+    }
+
+    // ==========================================
+    // 4. ระบบจัดการ Modal (Popup)
+    // ==========================================
+    function openModal(modalId) {
+        const modal = document.getElementById(modalId);
+        const content = modal.querySelector('div[id^="modal-"]');
+        
+        modal.classList.remove('hidden');
+        setTimeout(() => {
+            content.classList.remove('translate-y-full');
+            content.classList.add('translate-y-0');
+        }, 10);
+
+        if(modalId === 'modal-manage-students') {
+            resetSingleForm();
+            loadStudentsList();
+        } else if(modalId === 'modal-manage-games') {
+            loadManageGames();
+        } else if(modalId === 'modal-add-game' && document.getElementById('edit-game-id').value === '') {
+            document.getElementById('form-add-game').reset();
+            document.getElementById('modal-game-title').innerText = "เพิ่มเกมเรียนรู้ใหม่";
+        }
+    }
+
+    function closeModal(modalId) {
+        const modal = document.getElementById(modalId);
+        const content = modal.querySelector('div[id^="modal-"]');
+        
+        content.classList.remove('translate-y-0');
+        content.classList.add('translate-y-full');
+        
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            if(modalId === 'modal-add-game') {
+                document.getElementById('form-add-game').reset();
+                document.getElementById('edit-game-id').value = '';
+            }
+        }, 300);
+    }
+
+    // ==========================================
+    // 5. ระบบจัดการคลังเกมบน Dashboard
+    // ==========================================
+    async function adminLoadGames() {
+        const container = document.getElementById('admin-games-container');
+        container.innerHTML = '<div class="p-8 text-center text-xs text-slate-500 bg-white rounded-2xl border border-slate-100">กำลังโหลดข้อมูลเกม...</div>';
+        
+        try {
+            const { data: games, error } = await supabaseClient
+                .from('games')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+            if (games.length === 0) {
+                container.innerHTML = '<div class="p-8 text-center text-xs text-slate-500 bg-white rounded-2xl border border-slate-100">ยังไม่มีเกมในระบบ กด + เพิ่มเกมเรียนรู้ ได้เลยครับ</div>';
+                return;
+            }
+
+            container.innerHTML = '';
+            games.forEach(game => {
+                const isActive = game.is_active;
+                const statusBadge = isActive 
+                    ? `<button onclick="toggleGameStatus('${game.id}', true)" class="text-[9px] font-bold bg-emerald-50 text-emerald-600 px-2 py-1 rounded-full flex items-center gap-1 border border-emerald-100 hover:bg-emerald-100 transition-colors"><i class="fa-regular fa-circle-check"></i> เปิดใช้งาน</button>`
+                    : `<button onclick="toggleGameStatus('${game.id}', false)" class="text-[9px] font-bold bg-amber-50 text-amber-700 px-2 py-1 rounded-full flex items-center gap-1 border border-amber-200 hover:bg-amber-100 transition-colors"><i class="fa-solid fa-pen-ruler"></i> แบบร่าง (Draft)</button>`;
+                
+                const cardOpacity = isActive ? '' : 'opacity-70 grayscale-[20%]';
+                const gameEncoded = encodeURIComponent(JSON.stringify(game));
+
+                const card = `
+                <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 ${cardOpacity} transition-all">
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="flex gap-3 w-3/4">
+                            <div class="w-12 h-12 rounded-xl bg-blue-50 text-admin-blue flex items-center justify-center text-xl border border-blue-100 shrink-0"><i class="fa-solid fa-gamepad"></i></div>
+                            <div>
+                                <h4 class="text-sm font-bold text-slate-800 leading-tight truncate">${game.game_name}</h4>
+                                <p class="text-[10px] text-slate-400 mt-1 line-clamp-1">${game.description || 'ไม่มีคำอธิบาย'}</p>
+                            </div>
+                        </div>
+                        ${statusBadge}
+                    </div>
+                    
+                    <div class="flex items-center justify-between bg-slate-50 rounded-xl p-2 px-3 mb-3 border border-slate-100">
+                        <div class="flex items-center gap-1.5 text-[10px] text-slate-500 font-medium truncate">
+                            <i class="fa-solid fa-link text-admin-blue"></i> ${game.game_url}
+                        </div>
+                    </div>
+                    
+                    <div class="flex gap-2">
+                        <button onclick="alert('ระบบตั้งค่าด่านย่อยอยู่ในแผนพัฒนาเฟสต่อไปครับ')" class="flex-1 py-1.5 rounded-lg border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 flex items-center justify-center gap-1.5"><i class="fa-solid fa-gear"></i> ตั้งค่าด่าน</button>
+                        <button onclick="editGame('${gameEncoded}')" class="flex-1 py-1.5 rounded-lg bg-admin-blue text-white text-xs font-bold hover:bg-admin-darkblue flex items-center justify-center gap-1.5"><i class="fa-solid fa-pen"></i> แก้ไข</button>
+                        <button onclick="deleteGame('${game.id}', '${game.game_name}')" class="w-9 shrink-0 py-1.5 rounded-lg bg-red-50 text-red-500 text-xs hover:bg-red-100 flex items-center justify-center transition-colors" title="ลบเกมนี้"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                </div>
+                `;
+                container.innerHTML += card;
+            });
+
+        } catch (err) {
+            container.innerHTML = `<div class="p-8 text-center text-xs text-red-500 bg-red-50 rounded-2xl">ผิดพลาด: ${err.message}</div>`;
+        }
+    }
+
+    async function toggleGameStatus(id, currentStatus) {
+        const actionText = currentStatus ? 'ซ่อนเป็นแบบร่าง' : 'เปิดให้เด็กเล่น';
+        if(!confirm(`ต้องการ "${actionText}" เกมนี้ใช่หรือไม่?`)) return;
+        try {
+            const { error } = await supabaseClient.from('games').update({ is_active: !currentStatus }).eq('id', id);
+            if(error) throw error;
+            
+            adminLoadGames(); 
+            // ถ้ารายการเกมใน Modal เปิดอยู่ ให้อัปเดตด้วย
+            if(document.getElementById('modal-manage-games') && !document.getElementById('modal-manage-games').classList.contains('hidden')) {
+                loadManageGames();
+            }
+        } catch(err) { alert('❌ เกิดข้อผิดพลาด: ' + err.message); }
+    }
+
+    function editGame(encodedGame) {
+        const game = JSON.parse(decodeURIComponent(encodedGame));
+        document.getElementById('edit-game-id').value = game.id;
+        document.getElementById('game-name').value = game.game_name;
+        document.getElementById('game-desc').value = game.description || '';
+        document.getElementById('game-url').value = game.game_url;
+        document.getElementById('game-active').checked = game.is_active;
+        
+        document.getElementById('modal-game-title').innerText = "แก้ไขข้อมูลเกม";
+        openModal('modal-add-game');
+    }
+
+    async function submitNewGame(e) {
+        e.preventDefault();
+        const btn = document.getElementById('btn-save-game');
+        const id = document.getElementById('edit-game-id').value;
+        const name = document.getElementById('game-name').value.trim();
+        const desc = document.getElementById('game-desc').value.trim();
+        const url = document.getElementById('game-url').value.trim();
+        const isActive = document.getElementById('game-active').checked;
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> กำลังบันทึก...';
+
+        try {
+            if (id) {
+                const { error } = await supabaseClient.from('games').update({
+                    game_name: name, description: desc, game_url: url, is_active: isActive
+                }).eq('id', id);
                 if (error) throw error;
+                alert('✅ อัปเดตข้อมูลเกมเรียบร้อยแล้ว!');
+            } else {
+                const { error } = await supabaseClient.from('games').insert([{
+                    game_name: name, description: desc, game_url: url, is_active: isActive
+                }]);
+                if (error) throw error;
+                alert('✅ บันทึกเกมใหม่เรียบร้อยแล้ว!');
+            }
+            closeModal('modal-add-game');
+            adminLoadGames(); 
+            updateDashboardStats();
 
-                if (data.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-gray-500">ยังไม่มีประวัติการเล่น</td></tr>';
-                    return;
+        } catch (err) {
+            alert('❌ เกิดข้อผิดพลาด: ' + err.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> บันทึกข้อมูลเกม';
+        }
+    }
+
+    // ==========================================
+    // 6. ระบบจัดการรายการเกมทั้งหมด (Modal)
+    // ==========================================
+    let allManageGames = [];
+
+    async function loadManageGames() {
+        const container = document.getElementById('manage-games-list');
+        if(!container) return; // ข้ามไปถ้าไม่มี HTML ส่วนนี้
+        container.innerHTML = '<div class="p-4 text-center text-xs text-slate-500">กำลังโหลด...</div>';
+        try {
+            const { data, error } = await supabaseClient.from('games').select('*').order('created_at', { ascending: false });
+            if (error) throw error;
+            allManageGames = data;
+            renderManageGames(allManageGames);
+        } catch (err) {
+            container.innerHTML = `<div class="p-4 text-center text-xs text-red-500">ผิดพลาด: ${err.message}</div>`;
+        }
+    }
+
+    function renderManageGames(list) {
+        const container = document.getElementById('manage-games-list');
+        container.innerHTML = '';
+        if(list.length === 0) {
+            container.innerHTML = '<div class="p-4 text-center text-xs text-slate-500">ยังไม่มีเกม</div>';
+            return;
+        }
+        list.forEach(game => {
+            const isActive = game.is_active;
+            const toggleBg = isActive ? 'bg-emerald-500' : 'bg-slate-300';
+            const toggleDot = isActive ? 'translate-x-5' : 'translate-x-1';
+            const encodedGame = encodeURIComponent(JSON.stringify(game));
+
+            const item = document.createElement('div');
+            item.className = `flex justify-between items-center p-3 border-b border-slate-100 hover:bg-slate-50 transition-colors ${isActive ? '' : 'opacity-70 bg-slate-50'}`;
+            item.innerHTML = `
+                <div class="flex-1 min-w-0 pr-2">
+                    <h4 class="text-xs font-bold text-slate-800 truncate">${game.game_name}</h4>
+                    <p class="text-[9px] text-slate-500 truncate">${game.game_url}</p>
+                </div>
+                <div class="flex items-center gap-3 shrink-0">
+                    <button onclick="editGame('${encodedGame}')" class="text-admin-blue hover:text-admin-darkblue" title="แก้ไข">
+                        <i class="fa-solid fa-pen"></i>
+                    </button>
+                    <button onclick="deleteGame('${game.id}', '${game.game_name}')" class="text-red-400 hover:text-red-600 transition-colors" title="ลบเกม">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                    <div class="w-px h-4 bg-slate-200 mx-1"></div>
+                    <button onclick="toggleGameStatus('${game.id}', ${isActive})" class="w-10 h-5 rounded-full ${toggleBg} relative transition-colors duration-300 focus:outline-none shadow-inner" title="${isActive ? 'กำลังเปิดใช้งาน' : 'ถูกปิดซ่อน'}">
+                        <span class="w-3.5 h-3.5 bg-white rounded-full absolute top-[3px] left-0 ${toggleDot} transition-transform duration-300 shadow-sm"></span>
+                    </button>
+                </div>
+            `;
+            container.appendChild(item);
+        });
+    }
+
+    function filterManageGames() {
+        const q = document.getElementById('search-game').value.toLowerCase();
+        const filtered = allManageGames.filter(g => g.game_name.toLowerCase().includes(q));
+        renderManageGames(filtered);
+    }
+
+    // ==========================================
+    // 7. ระบบจัดการนักเรียน
+    // ==========================================
+    let allStudents = [];
+
+    async function loadStudentsList() {
+        const container = document.getElementById('student-list-container');
+        if(!container) return; // ข้ามไปถ้าไม่มี HTML ส่วนนี้
+        container.innerHTML = '<div class="p-4 text-center text-xs text-slate-500">กำลังโหลด...</div>';
+        try {
+            const { data, error } = await supabaseClient.from('students').select('*').order('class_room').order('student_code');
+            if (error) throw error;
+            allStudents = data;
+            renderStudentsList(allStudents);
+        } catch (err) {
+            container.innerHTML = `<div class="p-4 text-center text-xs text-red-500">ผิดพลาด: ${err.message}</div>`;
+        }
+    }
+
+    function renderStudentsList(list) {
+        const container = document.getElementById('student-list-container');
+        container.innerHTML = '';
+        if(list.length === 0) {
+            container.innerHTML = '<div class="p-4 text-center text-xs text-slate-500">ยังไม่มีข้อมูลนักเรียน</div>';
+            return;
+        }
+        list.forEach(std => {
+            const encodedStd = encodeURIComponent(JSON.stringify(std));
+            const item = document.createElement('div');
+            item.className = "flex justify-between items-center p-3 border-b border-slate-100 hover:bg-slate-50 text-xs";
+            item.innerHTML = `
+                <div>
+                    <span class="font-bold text-slate-800">${std.student_code}</span>
+                    <span class="text-slate-600 ml-1">${std.first_name} ${std.last_name}</span>
+                    <span class="inline-block bg-slate-200 px-1.5 py-0.5 rounded text-[9px] font-bold text-slate-600 ml-1">${std.class_room}</span>
+                </div>
+                <button onclick="editStudent('${encodedStd}')" class="w-7 h-7 bg-blue-50 text-admin-blue rounded-lg flex items-center justify-center hover:bg-blue-100 transition-colors">
+                    <i class="fa-solid fa-pen"></i>
+                </button>
+            `;
+            container.appendChild(item);
+        });
+    }
+
+    function filterStudents() {
+        const query = document.getElementById('search-student').value.toLowerCase();
+        const filtered = allStudents.filter(s => 
+            s.student_code.toLowerCase().includes(query) || 
+            s.first_name.toLowerCase().includes(query) || 
+            s.last_name.toLowerCase().includes(query) || 
+            s.class_room.toLowerCase().includes(query)
+        );
+        renderStudentsList(filtered);
+    }
+
+    function editStudent(encodedStd) {
+        const std = JSON.parse(decodeURIComponent(encodedStd));
+        document.getElementById('edit-std-id').value = std.id;
+        document.getElementById('edit-std-code').value = std.student_code;
+        document.getElementById('edit-std-code').disabled = true; 
+        document.getElementById('edit-std-code').classList.add('bg-slate-200');
+        
+        document.getElementById('edit-std-fname').value = std.first_name;
+        document.getElementById('edit-std-lname').value = std.last_name || '';
+        document.getElementById('edit-std-class').value = std.class_room;
+        
+        document.getElementById('btn-save-single').innerText = "อัปเดต";
+        document.getElementById('btn-save-single').classList.replace('bg-admin-blue', 'bg-amber-500');
+        document.getElementById('btn-cancel-edit').classList.remove('hidden');
+    }
+
+    function resetSingleForm() {
+        document.getElementById('form-manage-single').reset();
+        document.getElementById('edit-std-id').value = '';
+        document.getElementById('edit-std-code').disabled = false;
+        document.getElementById('edit-std-code').classList.remove('bg-slate-200');
+        
+        document.getElementById('btn-save-single').innerText = "บันทึก";
+        document.getElementById('btn-save-single').className = "bg-admin-blue hover:bg-admin-darkblue text-white font-bold px-4 rounded-lg shrink-0 text-xs shadow-sm transition-colors";
+        document.getElementById('btn-cancel-edit').classList.add('hidden');
+    }
+
+    async function submitSingleStudent(e) {
+        e.preventDefault();
+        const id = document.getElementById('edit-std-id').value;
+        const code = document.getElementById('edit-std-code').value.trim();
+        const fname = document.getElementById('edit-std-fname').value.trim();
+        const lname = document.getElementById('edit-std-lname').value.trim();
+        const cls = document.getElementById('edit-std-class').value.trim();
+
+        const btn = document.getElementById('btn-save-single');
+        const oldText = btn.innerText;
+        btn.innerText = "...";
+        btn.disabled = true;
+
+        try {
+            if (id) {
+                const { error } = await supabaseClient.from('students').update({
+                    first_name: fname, last_name: lname, class_room: cls
+                }).eq('id', id);
+                if (error) throw error;
+                alert('อัปเดตข้อมูลสำเร็จ!');
+            } else {
+                const { error } = await supabaseClient.from('students').insert([{
+                    student_code: code, first_name: fname, last_name: lname, class_room: cls
+                }]);
+                if (error) {
+                    if(error.code === '23505') throw new Error('รหัสนักเรียนซ้ำในระบบ!');
+                    throw error;
+                }
+                alert('เพิ่มนักเรียนสำเร็จ!');
+            }
+            
+            resetSingleForm();
+            loadStudentsList(); 
+            updateDashboardStats();
+
+        } catch(err) {
+            alert('❌ ' + err.message);
+        } finally {
+            btn.innerText = oldText;
+            btn.disabled = false;
+        }
+    }
+
+    function downloadTemplate() {
+        const wb = XLSX.utils.book_new();
+        const ws_data = [
+            ["student_code", "first_name", "last_name", "class_room"],
+            ["54321", "ต้นกล้า", "รักเรียน", "ป.4/1"],
+            ["54322", "พอใจ", "ตั้งใจ", "ป.5/2"]
+        ];
+        const ws = XLSX.utils.aoa_to_sheet(ws_data);
+        XLSX.utils.book_append_sheet(wb, ws, "Students");
+        XLSX.writeFile(wb, "Template_เพิ่มนักเรียน.xlsx");
+    }
+
+    function handleExcelUpload(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const statusLabel = document.getElementById('excel-status');
+        statusLabel.classList.remove('hidden', 'text-red-500', 'text-green-500');
+        statusLabel.classList.add('text-blue-500');
+        statusLabel.innerText = "กำลังอ่านไฟล์...";
+
+        const reader = new FileReader();
+        reader.onload = async function(evt) {
+            try {
+                const data = evt.target.result;
+                const workbook = XLSX.read(data, { type: 'binary' });
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+                if (jsonData.length === 0) throw new Error("ไม่พบข้อมูลในไฟล์");
+                if(!jsonData[0].student_code || !jsonData[0].first_name) {
+                    throw new Error("หัวคอลัมน์ไม่ถูกต้อง (ต้องเป็น student_code, first_name, last_name, class_room)");
                 }
 
-                tbody.innerHTML = '';
-                data.forEach(row => {
-                    const date = new Date(row.played_at).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' });
-                    const tr = document.createElement('tr');
-                    tr.className = "border-b hover:bg-gray-50";
-                    tr.innerHTML = `
-                        <td class="p-3">${row.students.first_name} ${row.students.last_name}</td>
-                        <td class="p-3">${row.students.class_room}</td>
-                        <td class="p-3 text-indigo-600">${row.games.game_name}</td>
-                        <td class="p-3 font-bold text-green-600">${row.score}</td>
-                        <td class="p-3 text-gray-400 text-xs">${date}</td>
-                    `;
-                    tbody.appendChild(tr);
-                });
-            } catch (err) {
-                console.error(err);
-                tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-red-500">ดึงข้อมูลล้มเหลว</td></tr>';
+                statusLabel.innerText = `กำลังอัปโหลดข้อมูล ${jsonData.length} รายการ...`;
+
+                const cleanData = jsonData.map(row => ({
+                    student_code: String(row.student_code).trim(),
+                    first_name: String(row.first_name).trim(),
+                    last_name: String(row.last_name || '').trim(),
+                    class_room: String(row.class_room).trim()
+                }));
+
+                const { data: result, error } = await supabaseClient.from('students').insert(cleanData);
+
+                if (error) {
+                    if (error.code === '23505') throw new Error("มีรหัสนักเรียนซ้ำในระบบ (การอัปโหลดถูกยกเลิกทั้งหมด)");
+                    throw error;
+                }
+
+                statusLabel.className = "text-[10px] font-bold text-center mt-2 text-green-600";
+                statusLabel.innerText = `✅ เพิ่มนักเรียนสำเร็จ ${cleanData.length} คน!`;
+                
+                loadStudentsList();
+                updateDashboardStats();
+                e.target.value = ''; 
+
+            } catch(err) {
+                statusLabel.className = "text-[10px] font-bold text-center mt-2 text-red-500";
+                statusLabel.innerText = `❌ ผิดพลาด: ${err.message}`;
+                e.target.value = ''; 
             }
+        };
+        reader.readAsBinaryString(file);
+    }
+    // ==========================================
+    // ฟังก์ชันลบเกมออกจากระบบ Supabase
+    // ==========================================
+    async function deleteGame(id, name) {
+        // ขึ้นกล่องยืนยันก่อนลบ ป้องกันการเผลอกด
+        if(!confirm(`⚠️ คำเตือน: คุณแน่ใจหรือไม่ที่จะลบเกม "${name}" ?\nข้อมูลนี้จะถูกลบถาวรและไม่สามารถกู้คืนได้!`)) return;
+        
+        try {
+            // สั่งลบข้อมูลจาก Supabase
+            const { error } = await supabaseClient.from('games').delete().eq('id', id);
+            if (error) throw error;
+            
+            alert('🗑️ ลบเกมเรียบร้อยแล้ว');
+            
+            // รีเฟรชหน้า Dashboard และตัวเลขสถิติ
+            adminLoadGames();
+            updateDashboardStats();
+            
+            // ถ้ารายการเกมใน Modal เปิดอยู่ ให้อัปเดตรายชื่อด้วย
+            const manageModal = document.getElementById('modal-manage-games');
+            if(manageModal && !manageModal.classList.contains('hidden')) {
+                loadManageGames();
+            }
+        } catch (err) {
+            alert('❌ เกิดข้อผิดพลาดในการลบ: ' + err.message);
         }
+    }
+    // ==========================================
+    // ระบบจัดการภารกิจ (Quests)
+    // ==========================================
 
-        // 4. ฟังก์ชันเพิ่มนักเรียน
-        async function addStudent() {
-            const code = document.getElementById('new-std-code').value.trim();
-            const fname = document.getElementById('new-std-fname').value.trim();
-            const lname = document.getElementById('new-std-lname').value.trim();
-            const cls = document.getElementById('new-std-class').value.trim();
-
-            if (!code || !fname || !lname || !cls) return alert('กรุณากรอกข้อมูลให้ครบ');
-
-            // แก้ไข: ใช้ supabaseClient
-            const { error } = await supabaseClient.from('students').insert([{
-                student_code: code, first_name: fname, last_name: lname, class_room: cls
-            }]);
-
-            if (error) alert('Error: ' + error.message);
-            else { alert('เพิ่มนักเรียนสำเร็จ!'); document.querySelectorAll('#new-std-code, #new-std-fname, #new-std-lname, #new-std-class').forEach(el => el.value = ''); }
+    // อัปเดตฟังก์ชัน closeModal ให้เคลียร์ฟอร์มภารกิจด้วย (หาฟังก์ชัน closeModal เดิมที่มีอยู่แล้วนำโค้ดบรรทัดที่เพิ่มเข้าไปใส่ครับ หรือจะใช้แบบดักจับการปิด Modal ด้านล่างนี้ก็ได้เพื่อความชัวร์)
+    const baseCloseModalQuest = window.closeModal;
+    window.closeModal = function(id) {
+        if(typeof baseCloseModalQuest === 'function') baseCloseModalQuest(id);
+        if(id === 'modal-add-quest') {
+            setTimeout(() => {
+                document.getElementById('form-add-quest').reset();
+                document.getElementById('edit-quest-id').value = '';
+                document.getElementById('modal-quest-title').innerText = "สร้างภารกิจใหม่";
+                // รีเซ็ตค่าตัวเลขกลับเป็นค่าเริ่มต้น
+                document.getElementById('quest-coins').value = 0;
+                document.getElementById('quest-xp').value = 50;
+            }, 300);
         }
+    }
 
-        // 5. ฟังก์ชันเพิ่มเกม
-        async function addGame() {
-            const name = document.getElementById('new-game-name').value.trim();
-            const desc = document.getElementById('new-game-desc').value.trim();
-            const url = document.getElementById('new-game-url').value.trim();
+    // ฟังก์ชันบันทึกภารกิจ (เพิ่มใหม่ & อัปเดต)
+    async function submitNewQuest(e) {
+        e.preventDefault();
+        const btn = document.getElementById('btn-save-quest');
+        const id = document.getElementById('edit-quest-id').value;
+        
+        const name = document.getElementById('quest-name').value.trim();
+        const desc = document.getElementById('quest-desc').value.trim();
+        const coins = parseInt(document.getElementById('quest-coins').value) || 0;
+        const xp = parseInt(document.getElementById('quest-xp').value) || 0;
+        const isActive = document.getElementById('quest-active').checked;
+        
+        // 🌟 ดึงค่า ID ของเกมที่ถูกเลือก
+        const targetGameId = document.getElementById('quest-target-game').value;
+        const finalTargetGame = targetGameId ? targetGameId : null; // ถ้าเป็นค่าว่างให้ส่ง null ไป
 
-            if (!name || !url) return alert('กรุณากรอกชื่อเกม และ URL');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> กำลังบันทึก...';
 
-            // แก้ไข: ใช้ supabaseClient
-            const { error } = await supabaseClient.from('games').insert([{
-                game_name: name, description: desc, game_url: url, is_active: true
-            }]);
-
-            if (error) alert('Error: ' + error.message);
-            else { alert('เพิ่มเกมสำเร็จ!'); document.querySelectorAll('#new-game-name, #new-game-desc, #new-game-url').forEach(el => el.value = ''); }
+        try {
+            if (id) {
+                const { error } = await supabaseClient.from('quests').update({
+                    quest_name: name, description: desc, reward_coins: coins, reward_xp: xp, is_active: isActive, target_game_id: finalTargetGame
+                }).eq('id', id);
+                if (error) throw error;
+                alert('✅ อัปเดตภารกิจเรียบร้อย!');
+            } else {
+                const { error } = await supabaseClient.from('quests').insert([{
+                    quest_name: name, description: desc, reward_coins: coins, reward_xp: xp, is_active: isActive, target_game_id: finalTargetGame
+                }]);
+                if (error) throw error;
+                alert('✅ สร้างภารกิจใหม่เรียบร้อยแล้ว!');
+            }
+            
+            closeModal('modal-add-quest');
+            
+        } catch (err) {
+            alert('❌ เกิดข้อผิดพลาด: ' + err.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> บันทึกภารกิจ';
         }
-    </script>
+    }
+    // โหลดรายชื่อเกมเข้าไปใน Dropdown ของภารกิจ
+    async function loadGamesForQuestDropdown() {
+        const select = document.getElementById('quest-target-game');
+        select.innerHTML = '<option value="">-- ไม่ผูกกับเกม (ภารกิจทั่วไป) --</option>'; // เคลียร์ของเดิม
+        
+        try {
+            // ดึงเฉพาะเกมที่เปิดใช้งานอยู่
+            const { data: games, error } = await supabaseClient.from('games').select('id, game_name').eq('is_active', true);
+            if(error) throw error;
+            
+            games.forEach(game => {
+                const option = document.createElement('option');
+                option.value = game.id;
+                option.innerText = `🎮 ${game.game_name}`;
+                select.appendChild(option);
+            });
+        } catch(err) {
+            console.error('โหลดรายชื่อเกมสำหรับภารกิจล้มเหลว:', err);
+        }
+    }
+
+    // แอบแทรกให้โหลด Dropdown อัตโนมัติทุกครั้งที่เปิด Modal ภารกิจ
+    const originalOpenModalQuest = window.openModal;
+    window.openModal = function(id) {
+        if(typeof originalOpenModalQuest === 'function') originalOpenModalQuest(id);
+        if(id === 'modal-add-quest') {
+            loadGamesForQuestDropdown(); // โหลดชื่อเกมมาเตรียมไว้
+        }
+    }
+    // ==========================================
+    // ระบบจัดการรายการภารกิจทั้งหมด (Manage Quests Modal)
+    // ==========================================
+    let allManageQuests = [];
+
+    async function loadManageQuests() {
+        const container = document.getElementById('manage-quests-list');
+        if(!container) return;
+        container.innerHTML = '<div class="p-4 text-center text-xs text-slate-500">กำลังโหลด...</div>';
+        
+        try {
+            // ดึงข้อมูลภารกิจ พร้อมชื่อเกมที่ผูกไว้ (ถ้ามี)
+            const { data, error } = await supabaseClient
+                .from('quests')
+                .select(`*, games(game_name)`)
+                .order('created_at', { ascending: false });
+                
+            if (error) throw error;
+            allManageQuests = data;
+            renderManageQuests(allManageQuests);
+        } catch (err) {
+            container.innerHTML = `<div class="p-4 text-center text-xs text-red-500">ผิดพลาด: ${err.message}</div>`;
+        }
+    }
+
+    function renderManageQuests(list) {
+        const container = document.getElementById('manage-quests-list');
+        container.innerHTML = '';
+        if(list.length === 0) {
+            container.innerHTML = '<div class="p-4 text-center text-xs text-slate-500">ยังไม่มีภารกิจ</div>';
+            return;
+        }
+        
+        list.forEach(q => {
+            const isActive = q.is_active;
+            const toggleBg = isActive ? 'bg-emerald-500' : 'bg-slate-300';
+            const toggleDot = isActive ? 'translate-x-5' : 'translate-x-1';
+            const encodedQuest = encodeURIComponent(JSON.stringify(q));
+            
+            // ตรวจสอบว่ามีเกมที่ผูกไหม
+            const gameRef = q.games ? `<span class="text-admin-blue bg-blue-50 px-1 rounded">🎮 ${q.games.game_name}</span>` : `<span class="text-slate-400">ทั่วไป</span>`;
+
+            const item = document.createElement('div');
+            item.className = `flex justify-between items-center p-3 border-b border-slate-100 hover:bg-slate-50 transition-colors ${isActive ? '' : 'opacity-70 bg-slate-50'}`;
+            item.innerHTML = `
+                <div class="flex-1 min-w-0 pr-2">
+                    <h4 class="text-xs font-bold text-slate-800 truncate">${q.quest_name}</h4>
+                    <p class="text-[9px] text-slate-500 truncate mt-0.5">${gameRef} • 🪙 ${q.reward_coins} | ⭐ ${q.reward_xp}</p>
+                </div>
+                <div class="flex items-center gap-3 shrink-0">
+                    <button onclick="editQuest('${encodedQuest}')" class="text-admin-blue hover:text-admin-darkblue" title="แก้ไข">
+                        <i class="fa-solid fa-pen"></i>
+                    </button>
+                    <button onclick="deleteQuest('${q.id}', '${q.quest_name}')" class="text-red-400 hover:text-red-600 transition-colors" title="ลบ">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                    <div class="w-px h-4 bg-slate-200 mx-1"></div>
+                    <button onclick="toggleQuestStatus('${q.id}', ${isActive})" class="w-10 h-5 rounded-full ${toggleBg} relative transition-colors duration-300 focus:outline-none shadow-inner">
+                        <span class="w-3.5 h-3.5 bg-white rounded-full absolute top-[3px] left-0 ${toggleDot} transition-transform duration-300 shadow-sm"></span>
+                    </button>
+                </div>
+            `;
+            container.appendChild(item);
+        });
+    }
+
+    function filterManageQuests() {
+        const q = document.getElementById('search-quest').value.toLowerCase();
+        const filtered = allManageQuests.filter(quest => quest.quest_name.toLowerCase().includes(q));
+        renderManageQuests(filtered);
+    }
+
+    // ฟังก์ชันแก้ไขภารกิจ
+    function editQuest(encodedQuest) {
+        const q = JSON.parse(decodeURIComponent(encodedQuest));
+        document.getElementById('edit-quest-id').value = q.id;
+        document.getElementById('quest-name').value = q.quest_name;
+        document.getElementById('quest-desc').value = q.description || '';
+        document.getElementById('quest-coins').value = q.reward_coins;
+        document.getElementById('quest-xp').value = q.reward_xp;
+        document.getElementById('quest-active').checked = q.is_active;
+        
+        // รอให้ dropdown เกมโหลดเสร็จก่อนค่อยเซ็ตค่า
+        setTimeout(() => {
+            document.getElementById('quest-target-game').value = q.target_game_id || '';
+        }, 100);
+        
+        document.getElementById('modal-quest-title').innerText = "แก้ไขภารกิจ";
+        openModal('modal-add-quest');
+    }
+
+    // สวิตช์ เปิด/ปิด ภารกิจ
+    async function toggleQuestStatus(id, currentStatus) {
+        try {
+            const { error } = await supabaseClient.from('quests').update({ is_active: !currentStatus }).eq('id', id);
+            if(error) throw error;
+            loadManageQuests();
+        } catch(err) {
+            alert('❌ ผิดพลาด: ' + err.message);
+        }
+    }
+
+    // ลบภารกิจ
+    async function deleteQuest(id, name) {
+        if(!confirm(`⚠️ ต้องการลบภารกิจ "${name}" ถาวรหรือไม่?`)) return;
+        try {
+            const { error } = await supabaseClient.from('quests').delete().eq('id', id);
+            if (error) throw error;
+            loadManageQuests();
+        } catch (err) {
+            alert('❌ ลบไม่ได้ (อย่าลืมปิด RLS ที่ตาราง quests นะครับ): ' + err.message);
+        }
+    }
+
+    // แอบแทรกการโหลดข้อมูลเมื่อกดเปิด Modal จัดการภารกิจ
+    const originalOpenModalForQuests = window.openModal;
+    window.openModal = function(id) {
+        if(typeof originalOpenModalForQuests === 'function') originalOpenModalForQuests(id);
+        if(id === 'modal-manage-quests') loadManageQuests();
+    }
+</script>
 
 </body>
 </html>
