@@ -11,29 +11,17 @@
         body {
             font-family: 'Mali', cursive;
             margin: 0;
-            overflow: hidden;
-            background-color: #1e293b;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
+            overflow: hidden; /* ห้ามเลื่อนหน้าจอ */
+            background-color: #87CEEB; /* สีฟ้าท้องฟ้า */
             touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
         }
-        #game-container {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            max-width: 500px;
-            background: linear-gradient(to bottom, #87CEEB, #E0F6FF);
-            overflow: hidden;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
-        }
-        /* ล็อกสัดส่วนเกมด้านในให้เท่ากันทุกอุปกรณ์ */
+        /* Canvas เต็มจอ 100% ไม่มีการครอบ */
         canvas {
             display: block;
-            width: 100%;
-            height: 100%;
-            object-fit: fill;
+            width: 100vw;
+            height: 100vh;
         }
         .ui-layer {
             position: absolute;
@@ -46,115 +34,117 @@
 </head>
 <body>
 
-<div id="game-container">
-    <canvas id="gameCanvas" width="400" height="700"></canvas>
+<!-- แคนวาสเต็มหน้าจอ -->
+<canvas id="gameCanvas"></canvas>
+
+<!-- เลเยอร์ UI (โจทย์, คะแนน, หัวใจ) -->
+<div id="ui-layer" class="ui-layer flex flex-col items-center p-4 pt-6 z-10">
     
-    <div id="ui-layer" class="ui-layer flex flex-col justify-between p-4">
-        <div class="flex justify-between items-start">
-            <div id="score-display" class="text-3xl font-bold text-white drop-shadow-md">คะแนน: 0</div>
-            <div id="hearts-display" class="text-2xl drop-shadow-md">❤️❤️❤️</div>
-        </div>
-        <div id="question-display" class="text-center text-4xl font-bold text-white drop-shadow-lg bg-blue-500/80 rounded-xl py-2 px-4 mx-auto mt-4 hidden border-4 border-white">
-            (2 + 3) x 4 = ?
-        </div>
+    <!-- โจทย์คำถาม ย้ายมาอยู่ด้านบนสุด -->
+    <div id="question-display" class="w-full max-w-xl mx-auto bg-blue-500/90 border-4 border-white text-white text-3xl md:text-5xl font-bold text-center py-3 md:py-4 px-6 rounded-2xl shadow-xl hidden backdrop-blur-sm transition-all">
+        (2 + 3) x 4 = ?
     </div>
+    
+    <!-- คะแนนและหัวใจ (อยู่ใต้โจทย์) -->
+    <div class="w-full max-w-xl mx-auto flex justify-between items-center mt-4 px-2">
+        <div id="score-display" class="text-2xl md:text-3xl font-bold text-white drop-shadow-md" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">คะแนน: 0</div>
+        <div id="hearts-display" class="text-2xl md:text-3xl drop-shadow-md" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">❤️❤️❤️</div>
+    </div>
+</div>
 
-    <!-- Start Screen -->
-    <div id="start-screen" class="absolute inset-0 bg-black/60 flex flex-col items-center justify-center pointer-events-auto backdrop-blur-sm z-50">
-        <div class="bg-white p-6 rounded-2xl shadow-xl text-center max-w-[90%] w-[340px]">
-            <h1 class="text-2xl font-bold text-blue-600 mb-2">🐦 นกน้อยนักคำนวณ</h1>
-            <p class="text-gray-600 mb-4 font-semibold text-sm">ระดับชั้นประถมศึกษาปีที่ 5</p>
-            <div class="text-left text-sm mb-4 bg-blue-50 p-3 rounded-lg border border-blue-100">
-                <p>🎯 <b>เป้าหมาย:</b> คิดเลขแล้วบินเข้าช่องที่ถูกต้อง</p>
-                <ul class="list-none mt-2 space-y-2">
-                    <li>👆 <b>แตะจอ</b> เพื่อกระพือปีกเบาๆ</li>
-                    <li>➕ <b>อ่านโจทย์</b> ในกรอบสีน้ำเงินด้านบน</li>
-                    <li>✅ <b>บินผ่านช่อง</b> ที่มีตัวเลขคำตอบที่ถูก</li>
-                    <li>💡 <b>ทิป:</b> ปล่อยให้นกร่อนลงช้าๆ ไม่ต้องรีบ!</li>
-                </ul>
-            </div>
-            <button id="start-btn" class="w-full bg-green-500 text-white font-bold text-xl py-3 px-6 rounded-xl hover:bg-green-600 transform transition active:scale-95 shadow-lg border-b-4 border-green-700">
-                เริ่มเล่น! 🚀
+<!-- หน้าจอเริ่มเกม -->
+<div id="start-screen" class="absolute inset-0 bg-black/60 flex flex-col items-center justify-center pointer-events-auto backdrop-blur-sm z-50 p-4">
+    <div class="bg-white p-6 md:p-8 rounded-3xl shadow-2xl text-center w-full max-w-sm">
+        <h1 class="text-3xl font-bold text-blue-600 mb-2">🐦 นกน้อยนักคำนวณ</h1>
+        <p class="text-gray-600 mb-4 font-semibold">ระดับชั้น ป.5</p>
+        <div class="text-left text-sm mb-6 bg-blue-50 p-4 rounded-xl border border-blue-100">
+            <p class="mb-2">🎯 <b>เป้าหมาย:</b> คิดเลขแล้วบินเข้าช่องที่ถูกต้อง</p>
+            <ul class="list-none space-y-2">
+                <li>👆 <b>แตะจอ</b> เพื่อกระพือปีกเบาๆ</li>
+                <li>➕ <b>อ่านโจทย์</b> ด้านบนให้ดี</li>
+                <li>✅ <b>บินผ่านช่อง</b> ที่เป็นคำตอบที่ถูก</li>
+                <li>💡 <b>ทิป:</b> ปล่อยให้นกร่อนลงช้าๆ ไม่ต้องรีบ!</li>
+            </ul>
+        </div>
+        <button id="start-btn" class="w-full bg-green-500 text-white font-bold text-2xl py-4 px-6 rounded-xl hover:bg-green-600 transform transition active:scale-95 shadow-lg border-b-4 border-green-700">
+            เริ่มเล่น! 🚀
+        </button>
+        <p id="guest-warning" class="text-xs text-red-500 mt-4 hidden bg-red-50 p-2 rounded border border-red-200">
+            โหมดทดลองเล่น (ไม่บันทึกคะแนน)
+        </p>
+    </div>
+</div>
+
+<!-- หน้าจอจบเกม -->
+<div id="game-over-screen" class="absolute inset-0 bg-black/70 hidden flex-col items-center justify-center pointer-events-auto backdrop-blur-sm z-50 p-4">
+    <div class="bg-white p-6 md:p-8 rounded-3xl shadow-2xl text-center w-full max-w-sm">
+        <h2 class="text-4xl font-bold text-red-500 mb-2">จบเกม!</h2>
+        <p class="text-gray-600 mb-2 text-lg">คะแนนของคุณ</p>
+        <div class="text-7xl font-black text-blue-500 mb-6 drop-shadow-md" id="final-score">0</div>
+        
+        <div id="saving-status" class="text-sm font-semibold text-blue-600 mb-6 bg-blue-50 py-3 rounded-xl border border-blue-200">
+            ⏳ กำลังบันทึกคะแนน...
+        </div>
+
+        <div class="space-y-4">
+            <button id="restart-btn" class="w-full bg-yellow-400 text-yellow-900 font-bold text-xl py-4 px-6 rounded-xl hover:bg-yellow-500 transition shadow-md border-b-4 border-yellow-600 active:scale-95 hidden">
+                🔄 เล่นอีกครั้ง
             </button>
-            <p id="guest-warning" class="text-xs text-red-500 mt-3 hidden">คุณกำลังเล่นในโหมดทดลอง (ไม่บันทึกคะแนน)</p>
-        </div>
-    </div>
-
-    <!-- Game Over Screen -->
-    <div id="game-over-screen" class="absolute inset-0 bg-black/70 hidden flex-col items-center justify-center pointer-events-auto backdrop-blur-sm z-50">
-        <div class="bg-white p-6 rounded-3xl shadow-2xl text-center w-[320px] max-w-[90%] transform transition-all scale-100">
-            <h2 class="text-3xl font-bold text-red-500 mb-2">จบเกม!</h2>
-            <p class="text-gray-600 mb-2">คะแนนของคุณ</p>
-            <div class="text-6xl font-black text-blue-500 mb-4 drop-shadow-md" id="final-score">0</div>
-            
-            <div id="saving-status" class="text-sm font-semibold text-blue-600 mb-4 bg-blue-50 py-2 rounded-lg">
-                ⏳ กำลังบันทึกคะแนน...
-            </div>
-
-            <div class="space-y-3 mt-4">
-                <button id="restart-btn" class="w-full bg-yellow-400 text-yellow-900 font-bold text-lg py-3 px-6 rounded-xl hover:bg-yellow-500 transition shadow-md border-b-4 border-yellow-600">
-                    🔄 เล่นอีกครั้ง
-                </button>
-                <a href="index.html" class="block w-full bg-blue-500 text-white font-bold text-lg py-3 px-6 rounded-xl hover:bg-blue-600 transition shadow-md border-b-4 border-blue-700 decoration-none">
-                    🏠 กลับศูนย์รวมเกม
-                </a>
-            </div>
+            <a href="index.html" id="home-btn" class="block w-full bg-blue-500 text-white font-bold text-xl py-4 px-6 rounded-xl hover:bg-blue-600 transition shadow-md border-b-4 border-blue-700 decoration-none hidden active:scale-95">
+                🏠 กลับศูนย์รวมเกม
+            </a>
         </div>
     </div>
 </div>
 
 <script>
-    // --- ตั้งค่า Supabase ---
+    // --- 1. ตั้งค่า Supabase ---
     const SUPABASE_URL = 'https://gtcjixepijvcgvyfpqws.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0Y2ppeGVwaWp2Y2d2eWZwcXdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3MjU5NDYsImV4cCI6MjEwMTMwMTk0Nn0.FyEIl4r_LXhLeUxIzHusKzpnp7EdMvjADCdiLEMS-G8';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // --- รับค่าจาก URL ---
+    // --- 2. รับค่าจาก URL ---
     const urlParams = new URLSearchParams(window.location.search);
     const studentId = urlParams.get('student_id');
-    const gameId = urlParams.get('game_id') || 'math_g5';
+    const gameId = urlParams.get('game_id') || 'math_g5_flappy';
     const isGuest = !studentId;
 
-    if (isGuest) {
-        document.getElementById('guest-warning').classList.remove('hidden');
-    }
+    if (isGuest) document.getElementById('guest-warning').classList.remove('hidden');
 
-    // --- ตั้งค่า Canvas และ Delta Time ---
+    // --- 3. ระบบ Canvas แบบเต็มจอ ---
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
-    
-    // ขนาดคงที่เพื่อให้ฟิสิกส์เท่ากันทุกเครื่อง (400x700)
-    const GAME_WIDTH = canvas.width;
-    const GAME_HEIGHT = canvas.height;
+    let cw, ch;
 
-    // ตัวแปร Delta Time
+    function resizeCanvas() {
+        cw = window.innerWidth;
+        ch = window.innerHeight;
+        canvas.width = cw;
+        canvas.height = ch;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas(); // เซ็ตขนาดครั้งแรก
+
+    // --- 4. ตัวแปรเกม ---
     let lastTime = 0;
-    
-    // --- ตัวแปรเกม ---
-    let gameState = 'start'; // start, playing, gameover
+    let gameState = 'start';
     let score = 0;
     let hearts = 3;
     let pipes = [];
     let clouds = [];
-    let currentQuestion = null;
     let spawnTimer = 0;
+    let currentQuestion = null;
 
-    // --- ฟิสิกส์เกม (ถูกปรับให้ช้า นุ่มนวล มีเวลาคิดเลข) ---
-    // ตัวแปรเหล่านี้จะถูกคูณด้วย Delta Time อีกครั้ง
-    const GRAVITY = 0.15;       
-    const FLAP_STRENGTH = -5.0; 
-    const PIPE_SPEED = 2.0;     
-    const SPAWN_INTERVAL = 3500; // สร้างท่อทุก 3.5 วินาที
+    // --- 5. ฟิสิกส์อิงตามสัดส่วนจอ + Delta Time ---
+    // เพื่อให้เล่นได้ความเร็วเท่ากันทุกเครื่อง
+    const SPAWN_INTERVAL = 4000; // สร้างท่อทุกๆ 4 วินาที
 
-    const bird = {
-        x: 80,
-        y: GAME_HEIGHT / 2,
-        velocity: 0,
-        radius: 15,
+    let bird = {
+        x: 0, y: 0, velocity: 0, radius: 20,
         draw() {
             ctx.beginPath();
             ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-            ctx.fillStyle = '#FBBF24'; // สีเหลืองน่ารัก
+            ctx.fillStyle = '#FBBF24';
             ctx.fill();
             ctx.lineWidth = 3;
             ctx.strokeStyle = '#D97706';
@@ -162,56 +152,44 @@
             
             // ตา
             ctx.beginPath();
-            ctx.arc(this.x + 5, this.y - 5, 4, 0, Math.PI * 2);
+            ctx.arc(this.x + this.radius*0.3, this.y - this.radius*0.3, this.radius*0.25, 0, Math.PI * 2);
             ctx.fillStyle = 'white';
             ctx.fill();
             ctx.beginPath();
-            ctx.arc(this.x + 6, this.y - 5, 2, 0, Math.PI * 2);
+            ctx.arc(this.x + this.radius*0.4, this.y - this.radius*0.3, this.radius*0.1, 0, Math.PI * 2);
             ctx.fillStyle = 'black';
             ctx.fill();
         },
-        update(timeScale) {
-            this.velocity += GRAVITY * timeScale;
-            this.y += this.velocity * timeScale;
+        update(deltaTime) {
+            // คำนวณแรงโน้มถ่วงให้ตกถึงพื้นในเวลาพอเหมาะ (สัดส่วนตามความสูงจอ)
+            const gravity = ch * 0.000003; 
+            this.velocity += gravity * deltaTime;
+            this.y += this.velocity * deltaTime;
 
-            // ชนขอบบน/ล่าง ไม่ตายแค่หยุด
-            if (this.y < this.radius) {
-                this.y = this.radius;
-                this.velocity = 0;
-            }
-            if (this.y > GAME_HEIGHT - this.radius) {
-                this.y = GAME_HEIGHT - this.radius;
-                this.velocity = 0;
-            }
+            // ชนขอบบน/ล่าง
+            if (this.y < this.radius) { this.y = this.radius; this.velocity = 0; }
+            if (this.y > ch - this.radius) { this.y = ch - this.radius; this.velocity = 0; }
         },
         flap() {
-            this.velocity = FLAP_STRENGTH;
+            // คำนวณแรงกระโดดตามความสูงจอ
+            const flapStrength = ch * -0.0008; 
+            this.velocity = flapStrength;
         }
     };
 
-    // --- ระบบโจทย์ ป.5 (มีวงเล็บ) ---
+    // --- ระบบโจทย์ ---
     function generateQuestion() {
         const type = Math.floor(Math.random() * 3);
         const a = Math.floor(Math.random() * 8) + 2; 
         const b = Math.floor(Math.random() * 8) + 2;
         const c = Math.floor(Math.random() * 5) + 2;
-        
-        let qText = "";
-        let ans = 0;
+        let qText = "", ans = 0;
 
-        if (type === 0) {
-            qText = `(${a} + ${b}) x ${c}`;
-            ans = (a + b) * c;
-        } else if (type === 1) {
-            qText = `${a} + (${b} x ${c})`;
-            ans = a + (b * c);
-        } else {
-            qText = `${a * c} ÷ ${c} + ${b}`;
-            ans = (a * c) / c + b;
-        }
+        if (type === 0) { qText = `(${a} + ${b}) x ${c}`; ans = (a + b) * c; } 
+        else if (type === 1) { qText = `${a} + (${b} x ${c})`; ans = a + (b * c); } 
+        else { qText = `${a * c} ÷ ${c} + ${b}`; ans = (a * c) / c + b; }
 
         let dummy = ans + (Math.random() < 0.5 ? 1 : -1) * (Math.floor(Math.random() * 3) + 1);
-        
         return { qText, ans, dummy };
     }
 
@@ -220,17 +198,20 @@
         currentQuestion = q;
         document.getElementById('question-display').innerText = q.qText;
 
-        const gapSize = 140; // ช่องกว้างๆ บินผ่านง่าย
-        const pipeWidth = 70;
+        // ขนาดท่ออิงตามหน้าจอ
+        const pipeWidth = Math.max(60, cw * 0.12);
+        const gapSize = Math.max(120, ch * 0.25); // ช่องกว้างมากพอให้บินสบาย
+        const safeMargin = ch * 0.15;
         
-        // ตำแหน่งช่อง (มี 2 ช่อง บนและล่าง)
-        const topGapY = Math.floor(Math.random() * (GAME_HEIGHT / 3)) + 100;
-        const bottomGapY = topGapY + gapSize + 100 + Math.floor(Math.random() * 50);
+        // ตำแหน่งช่องบน
+        const topGapY = safeMargin + Math.random() * (ch * 0.25);
+        // ตำแหน่งช่องล่าง
+        const bottomGapY = topGapY + gapSize + (ch * 0.15) + Math.random() * (ch * 0.1);
         
         const correctIsTop = Math.random() > 0.5;
 
         pipes.push({
-            x: GAME_WIDTH,
+            x: cw, // เริ่มที่ขอบขวา
             w: pipeWidth,
             topGapY: topGapY,
             bottomGapY: bottomGapY,
@@ -238,42 +219,40 @@
             topText: correctIsTop ? q.ans : q.dummy,
             bottomText: correctIsTop ? q.dummy : q.ans,
             correctIsTop: correctIsTop,
-            scored: false,
-            hit: false
+            scored: false, hit: false
         });
     }
 
-    // --- กราฟิกตกแต่ง ---
-    for(let i=0; i<3; i++) {
-        clouds.push({ x: Math.random() * GAME_WIDTH, y: Math.random() * 200, speed: Math.random() * 0.5 + 0.2, size: Math.random() * 20 + 20 });
+    function initClouds() {
+        clouds = [];
+        for(let i=0; i<4; i++) {
+            clouds.push({ x: Math.random() * cw, y: Math.random() * (ch*0.4), speed: Math.random() * 0.05 + 0.02, size: Math.random() * 20 + 30 });
+        }
     }
 
-    function drawClouds(timeScale) {
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+    function drawClouds(deltaTime) {
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
         clouds.forEach(c => {
             ctx.beginPath();
             ctx.arc(c.x, c.y, c.size, 0, Math.PI * 2);
             ctx.arc(c.x + c.size*0.8, c.y - c.size*0.3, c.size*0.8, 0, Math.PI * 2);
             ctx.arc(c.x + c.size*1.5, c.y, c.size*0.9, 0, Math.PI * 2);
             ctx.fill();
-            
-            c.x -= c.speed * timeScale;
+            c.x -= c.speed * deltaTime;
             if (c.x < -c.size * 2) {
-                c.x = GAME_WIDTH + c.size;
-                c.y = Math.random() * 200;
+                c.x = cw + c.size;
+                c.y = Math.random() * (ch*0.4);
             }
         });
     }
 
     // --- ควบคุม ---
     function handleFlap(e) {
-        if(e) e.preventDefault(); // กันจอมือถือขยับเฉพาะเวลาแตะแคนวาส
-        if (gameState === 'playing') {
-            bird.flap();
-        }
+        if(e) e.preventDefault(); // กันจอมือถือขยับ
+        if (gameState === 'playing') bird.flap();
     }
     
-    // ดักจับเฉพาะที่ Canvas เพื่อไม่ให้ปุ่มต่างๆ บน UI โดนบล็อก
+    // ดักจับที่ Canvas เท่านั้น เพื่อให้ปุ่ม UI กดได้
     canvas.addEventListener('touchstart', handleFlap, { passive: false });
     canvas.addEventListener('mousedown', handleFlap);
     document.addEventListener('keydown', (e) => {
@@ -282,18 +261,22 @@
 
     // --- เริ่มและจบเกม ---
     function initGame() {
-        score = 0;
-        hearts = 3;
-        pipes = [];
-        bird.y = GAME_HEIGHT / 2;
+        score = 0; hearts = 3; pipes = [];
+        bird.x = Math.max(50, cw * 0.2); // อยู่ด้านซ้าย
+        bird.y = ch / 2;
         bird.velocity = 0;
-        spawnTimer = SPAWN_INTERVAL; // บังคับสร้างท่อแรกทันที
+        bird.radius = Math.max(15, Math.min(cw*0.04, 25)); // ปรับขนาดนกตามจอ
+        
+        initClouds();
+        spawnTimer = SPAWN_INTERVAL; 
         lastTime = performance.now();
         
         updateUI();
         document.getElementById('start-screen').classList.add('hidden');
         document.getElementById('game-over-screen').classList.add('hidden');
         document.getElementById('question-display').classList.remove('hidden');
+        document.getElementById('restart-btn').classList.add('hidden');
+        document.getElementById('home-btn').classList.add('hidden');
         
         gameState = 'playing';
         requestAnimationFrame(gameLoop);
@@ -307,35 +290,37 @@
         document.getElementById('final-score').innerText = score;
 
         const statusUI = document.getElementById('saving-status');
-        
+        const homeBtn = document.getElementById('home-btn');
+        const restartBtn = document.getElementById('restart-btn');
+
         if (isGuest) {
             statusUI.innerHTML = '🚫 <b>โหมดทดลองเล่น:</b> ไม่มีการบันทึกคะแนน';
-            statusUI.className = 'text-sm font-semibold text-gray-600 mb-4 bg-gray-100 py-2 rounded-lg';
+            statusUI.className = 'text-sm font-semibold text-gray-600 mb-6 bg-gray-100 py-3 rounded-xl';
+            homeBtn.classList.remove('hidden');
+            restartBtn.classList.remove('hidden');
             return;
         }
 
         try {
             statusUI.innerHTML = '⏳ กำลังบันทึกคะแนน...';
-            statusUI.className = 'text-sm font-semibold text-blue-600 mb-4 bg-blue-50 py-2 rounded-lg';
+            statusUI.className = 'text-sm font-semibold text-blue-600 mb-6 bg-blue-50 py-3 rounded-xl border border-blue-200';
 
-            const { error } = await supabaseClient
-                .from('scores')
-                .insert([{ 
-                    student_id: studentId, 
-                    game_id: gameId, 
-                    score: score 
-                }]);
+            const { error } = await supabaseClient.from('scores').insert([{ 
+                student_id: studentId, game_id: gameId, score: score 
+            }]);
 
             if (error) throw error;
 
             statusUI.innerHTML = '✅ บันทึกคะแนนสำเร็จ!';
-            statusUI.className = 'text-sm font-semibold text-green-700 mb-4 bg-green-100 py-2 rounded-lg border border-green-300';
-            
+            statusUI.className = 'text-sm font-semibold text-green-700 mb-6 bg-green-100 py-3 rounded-xl border border-green-300';
         } catch (err) {
-            console.error(err);
-            statusUI.innerHTML = '❌ บันทึกคะแนนไม่สำเร็จ: รหัสนักเรียนไม่ถูกต้อง';
-            statusUI.className = 'text-sm font-semibold text-red-600 mb-4 bg-red-100 py-2 rounded-lg';
+            statusUI.innerHTML = '❌ บันทึกไม่สำเร็จ (รหัสนักเรียนอาจไม่ถูกต้อง)';
+            statusUI.className = 'text-sm font-semibold text-red-600 mb-6 bg-red-100 py-3 rounded-xl border border-red-200';
         }
+
+        // แสดงปุ่มหลังบันทึกเสร็จ
+        homeBtn.classList.remove('hidden');
+        restartBtn.classList.remove('hidden');
     }
 
     function updateUI() {
@@ -345,94 +330,85 @@
         document.getElementById('hearts-display').innerText = heartStr;
     }
 
-    // --- Main Game Loop (Delta Time) ---
+    // --- Main Loop (Delta Time) ---
     function gameLoop(timestamp) {
         if (gameState !== 'playing') return;
 
-        // คำนวณ Delta Time
         let deltaTime = timestamp - lastTime;
         lastTime = timestamp;
-        
-        // timeScale = 1.0 เมื่อจอเป็น 60FPS (~16.6ms)
-        // ถ้าจอเป็น 120FPS (~8.3ms) timeScale จะ = 0.5 
-        let timeScale = deltaTime / 16.666; 
-        
-        // ป้องกันเวลา tab พับหน้าจอ แล้วกลับมาค่า deltaTime พุ่งสูงเกินไป
-        if (timeScale > 3) timeScale = 3;
+        // กันบั๊กเวลาสลับแท็บแล้ว deltaTime พุ่งสูง
+        if (deltaTime > 100) deltaTime = 16; 
 
-        ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-        
-        // วาดฉากหลัง
-        drawClouds(timeScale);
+        ctx.clearRect(0, 0, cw, ch);
+        drawClouds(deltaTime);
 
         // อัปเดตนก
-        bird.update(timeScale);
+        bird.update(deltaTime);
         bird.draw();
 
-        // สร้างท่อตามเวลาจริง (Delta Time)
+        // สร้างท่อ
         spawnTimer += deltaTime;
         if (spawnTimer >= SPAWN_INTERVAL) {
             createPipe();
             spawnTimer = 0;
         }
 
-        // จัดการท่อ
+        // คำนวณความเร็วท่อ (อิงตามความกว้างจอ ให้ข้ามจอใช้เวลา 4 วิ)
+        const pipeSpeed = cw * 0.00025; 
+
         for (let i = pipes.length - 1; i >= 0; i--) {
             let p = pipes[i];
             
-            // ขยับท่อตามเวลาจริง
-            p.x -= PIPE_SPEED * timeScale;
+            p.x -= pipeSpeed * deltaTime;
 
-            // วาดท่อ
+            // สีและสไตล์ท่อ
             ctx.fillStyle = '#22C55E';
             ctx.strokeStyle = '#166534';
             ctx.lineWidth = 4;
-            const radius = 10;
 
-            // เสาบนสุดถึงขอบบนช่อง 1
+            // ท่อบน
             ctx.fillRect(p.x, 0, p.w, p.topGapY);
-            ctx.strokeRect(p.x, -10, p.w, p.topGapY + 10);
+            ctx.strokeRect(p.x, -5, p.w, p.topGapY + 5);
             
-            // เสากลาง (ระหว่างช่อง 1 กับ ช่อง 2)
+            // ท่อกลาง
             const middleStartY = p.topGapY + p.gapSize;
             const middleHeight = p.bottomGapY - middleStartY;
             ctx.fillRect(p.x, middleStartY, p.w, middleHeight);
             ctx.strokeRect(p.x, middleStartY, p.w, middleHeight);
             
-            // เสาล่างสุดถึงพื้น
+            // ท่อล่าง
             const bottomStartY = p.bottomGapY + p.gapSize;
-            const bottomHeight = GAME_HEIGHT - bottomStartY;
+            const bottomHeight = ch - bottomStartY;
             ctx.fillRect(p.x, bottomStartY, p.w, bottomHeight);
-            ctx.strokeRect(p.x, bottomStartY, p.w, bottomHeight + 10);
+            ctx.strokeRect(p.x, bottomStartY, p.w, bottomHeight + 5);
 
-            // ป้ายตัวเลข
+            // ป้ายตัวเลขบนท่อ
             ctx.fillStyle = '#FFFFFF';
-            ctx.font = 'bold 36px Mali';
+            // ปรับขนาดฟอนต์ให้ใหญ่พอเหมาะ
+            const fontSize = Math.min(40, Math.max(24, cw * 0.05));
+            ctx.font = `bold ${fontSize}px Mali`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             
-            // ตัวเลขช่องบน
             ctx.fillText(p.topText, p.x + p.w/2, p.topGapY + p.gapSize/2);
-            // ตัวเลขช่องล่าง
             ctx.fillText(p.bottomText, p.x + p.w/2, p.bottomGapY + p.gapSize/2);
 
-            // เช็คการชนและการให้คะแนน (ทำ 1 ครั้งต่อท่อ)
+            // เช็คการชน
             if (!p.hit && !p.scored) {
-                // เช็คว่านกอยู่ในแนวนอนของท่อหรือไม่
+                // เช็คแนวนอน
                 if (bird.x + bird.radius > p.x && bird.x - bird.radius < p.x + p.w) {
                     
                     let inTopGap = (bird.y > p.topGapY && bird.y < p.topGapY + p.gapSize);
                     let inBottomGap = (bird.y > p.bottomGapY && bird.y < p.bottomGapY + p.gapSize);
 
                     if (inTopGap || inBottomGap) {
-                        // เช็คว่าเข้าถูกช่องไหมเมื่อผ่านกลางท่อไปแล้ว
+                        // บินผ่านกลางท่อ
                         if (bird.x > p.x + p.w/2) {
                             if ((inTopGap && p.correctIsTop) || (inBottomGap && !p.correctIsTop)) {
                                 score += 100;
                                 p.scored = true;
                                 updateUI();
                             } else {
-                                // เข้าผิดช่อง
                                 hearts--;
                                 p.hit = true;
                                 updateUI();
@@ -449,24 +425,18 @@
                 }
             }
 
-            // ลบท่อที่ออกนอกจอ
-            if (p.x + p.w < 0) {
-                pipes.splice(i, 1);
-            }
+            if (p.x + p.w < 0) pipes.splice(i, 1);
         }
 
-        if (gameState === 'playing') {
-            requestAnimationFrame(gameLoop);
-        }
+        if (gameState === 'playing') requestAnimationFrame(gameLoop);
     }
 
-    // Event Listeners สำหรับปุ่ม UI
     document.getElementById('start-btn').addEventListener('click', initGame);
     document.getElementById('restart-btn').addEventListener('click', initGame);
 
-    // วาดฉากรอตอนโหลดหน้าเว็บ
-    ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-    drawClouds(1);
+    // วาดฉากรอ
+    initClouds();
+    drawClouds(16);
 </script>
 </body>
 </html>
