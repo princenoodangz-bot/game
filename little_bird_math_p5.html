@@ -113,7 +113,7 @@
     // --- 2. รับค่าจาก URL ---
     const urlParams = new URLSearchParams(window.location.search);
     const studentId = urlParams.get('student_id');
-    const gameId = urlParams.get('game_id') || 'math_g5_flappy';
+    const gameId = urlParams.get('game_id') || 'little_bird_math_p5';
     const isGuest = !studentId;
 
     if (isGuest) {
