@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ลูกโป่งรวมร้อย (Math Game ป.5)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: 'Mali', cursive;
+            background-color: #f0fdfa; /* Pastel Mint */
+            touch-action: none; /* Prevent scroll on mobile */
+            user-select: none;
+        }
+        #gameCanvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+        .ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        .pointer-events-auto {
+            pointer-events: auto;
+        }
+        /* Bounce Animation */
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        .animate-bounce-soft {
+            animation: bounce 2s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Canvas for rendering game graphics -->
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- UI Overlay (Scores, Lives, Target) -->
+    <div class="ui-layer flex flex-col justify-between pb-4">
+        <!-- Top HUD -->
+        <div class="flex justify-between items-start p-4">
+            <div class="flex flex-col gap-2">
+                <div class="bg-white/80 backdrop-blur-sm rounded-2xl p-2 px-4 shadow-sm border-2 border-pink-200">
+                    <p class="text-pink-600 font-bold text-lg md:text-xl">คะแนน: <span id="scoreDisplay" class="text-2xl">0</span></p>
+                </div>
+                <div class="bg-white/80 backdrop-blur-sm rounded-2xl p-2 px-4 shadow-sm border-2 border-orange-200 text-center">
+                    <p class="text-orange-600 font-bold text-sm md:text-base">เวลา: <span id="timeDisplay" class="text-xl font-mono">1:30</span></p>
+                </div>
+            </div>
+            
+            <div class="bg-white/80 backdrop-blur-sm rounded-2xl p-2 px-4 shadow-sm border-2 border-blue-200 text-center">
+                <p class="text-blue-600 font-bold text-sm md:text-base">เป้าหมาย</p>
+                <p class="text-blue-800 font-bold text-xl md:text-2xl">รวมให้ได้ 100</p>
+            </div>
+
+            <div class="flex gap-1" id="livesDisplay">
+                <!-- Hearts will be injected here -->
+            </div>
+        </div>
+
+        <!-- Touch Controls (Mobile mainly, but clickable on desktop) -->
+        <div class="pointer-events-auto flex justify-center gap-4 md:gap-8 px-4 mt-auto mb-20 md:mb-10">
+            <button id="btnLeft" class="bg-indigo-400 hover:bg-indigo-500 text-white rounded-full w-16 h-16 md:w-20 md:h-20 flex items-center justify-center text-3xl shadow-lg border-b-4 border-indigo-600 active:translate-y-1 active:border-b-0 transition-all">◀</button>
+            <button id="btnShoot" class="bg-pink-400 hover:bg-pink-500 text-white rounded-full w-20 h-20 md:w-24 md:h-24 flex items-center justify-center text-4xl shadow-lg border-b-4 border-pink-600 active:translate-y-1 active:border-b-0 transition-all">🔼</button>
+            <button id="btnRight" class="bg-indigo-400 hover:bg-indigo-500 text-white rounded-full w-16 h-16 md:w-20 md:h-20 flex items-center justify-center text-3xl shadow-lg border-b-4 border-indigo-600 active:translate-y-1 active:border-b-0 transition-all">▶</button>
+        </div>
+    </div>
+
+    <!-- How To Play Modal -->
+    <div id="howToPlayModal" class="ui-layer pointer-events-auto flex items-center justify-center bg-black/40 backdrop-blur-sm z-50">
+        <div class="bg-white rounded-3xl p-6 md:p-8 max-w-sm md:max-w-md w-[90%] shadow-2xl border-4 border-pink-300 text-center relative animate-bounce-soft">
+            <h1 class="text-3xl font-bold text-pink-500 mb-4">ลูกโป่งรวมร้อย!</h1>
+            <div class="bg-blue-50 rounded-xl p-4 text-left text-gray-700 space-y-3 mb-6 border-2 border-blue-100">
+                <p class="font-bold text-lg text-blue-600">🎯 เป้าหมาย: ยิงลูกโป่งให้ตัวเลขรวมกันได้ "100" พอดี</p>
+                <p>◀ ▶ กดปุ่มซ้าย/ขวา เพื่อเลื่อนฐานยิง</p>
+                <p>🔼 กดปุ่มขึ้น เพื่อยิงลูกโป่ง</p>
+                <p>➕ ถ้ารวมกันได้ 100 ลูกโป่งจะแตก ได้คะแนน!</p>
+                <p>❌ ถ้ารวมไม่ได้ 100 แถวจะยาวขึ้น ระวังอย่าให้ชนฐาน!</p>
+                <p class="text-sm text-pink-600 mt-2">💡 ทิป: คิดเลข 2 หลักในใจเร็วๆ (เช่น มี 45 ต้องหา 55)</p>
+            </div>
+            <button id="btnStartGame" class="w-full bg-green-400 hover:bg-green-500 text-white font-bold text-xl py-3 rounded-2xl shadow-[0_4px_0_rgb(34,197,94)] active:shadow-none active:translate-y-1 transition-all">เริ่มเล่น! 🚀</button>
+        </div>
+    </div>
+
+    <!-- Game Over Modal -->
+    <div id="gameOverModal" class="ui-layer pointer-events-auto flex items-center justify-center bg-black/60 backdrop-blur-sm z-50 hidden">
+        <div class="bg-white rounded-3xl p-6 md:p-8 max-w-sm md:max-w-md w-[90%] shadow-2xl border-4 border-purple-300 text-center relative">
+            <h2 id="gameOverTitle" class="text-3xl font-bold text-purple-600 mb-2">จบเกม!</h2>
+            <div class="my-4">
+                <p class="text-gray-500">คะแนนของคุณ</p>
+                <p id="finalScore" class="text-5xl font-bold text-pink-500 my-2">0</p>
+                <div id="starsDisplay" class="flex justify-center gap-2 text-4xl mb-4">
+                    <!-- Stars injected here -->
+                </div>
+            </div>
+            
+            <div id="saveStatus" class="text-sm font-bold mb-4 h-6 text-gray-600">กำลังเตรียมบันทึกคะแนน...</div>
+
+            <div class="flex flex-col gap-3">
+                <button id="btnRestart" class="w-full bg-blue-400 hover:bg-blue-500 text-white font-bold text-lg py-3 rounded-2xl shadow-[0_4px_0_rgb(59,130,246)] active:shadow-none active:translate-y-1 transition-all">เล่นอีกครั้ง 🔄</button>
+                <a id="btnReturn" href="index.html" class="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-lg py-3 rounded-2xl shadow-[0_4px_0_rgb(156,163,175)] active:shadow-none active:translate-y-1 transition-all hidden block">กลับศูนย์รวมเกม 🏠</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help Button (Top Left) -->
+    <div class="absolute top-4 left-4 z-40 pointer-events-auto hidden" id="helpBtnContainer">
+        <button id="btnHelp" class="bg-white/80 hover:bg-white text-blue-500 w-10 h-10 rounded-full font-bold shadow-md border-2 border-blue-200">?</button>
+    </div>
+
+    <script>
+        // --- 1. System Setup & Supabase ---
+        const SUPABASE_URL = 'https://gtcjixepijvcgvyfpqws.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0Y2ppeGVwaWp2Y2d2eWZwcXdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3MjU5NDYsImV4cCI6MjEwMTMwMTk0Nn0.FyEIl4r_LXhLeUxIzHusKzpnp7EdMvjADCdiLEMS-G8';
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // Get URL Parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const studentId = urlParams.get('student_id') || 'guest_student';
+        const gameId = urlParams.get('game_id') || 'math_grade5_make100';
+
+        // --- 2. Game Variables & State Machine ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // UI Elements
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const timeDisplay = document.getElementById('timeDisplay');
+        const livesDisplay = document.getElementById('livesDisplay');
+        const howToPlayModal = document.getElementById('howToPlayModal');
+        const gameOverModal = document.getElementById('gameOverModal');
+        const finalScoreText = document.getElementById('finalScore');
+        const saveStatusText = document.getElementById('saveStatus');
+        const btnReturn = document.getElementById('btnReturn');
+        const starsDisplay = document.getElementById('starsDisplay');
+        const helpBtnContainer = document.getElementById('helpBtnContainer');
+
+        // Game Constants & Setup
+        const TARGET_SUM = 100;
+        const NUMBERS = [15, 25, 35, 45, 55, 65, 75, 85, 10, 20, 30, 40, 50, 60, 70, 80, 90];
+        const BALLOON_COLORS = ['#ff99c2', '#99ccff', '#99ff99', '#ffcc99', '#cc99ff', '#ffff99'];
+        const NUM_COLUMNS = 6;
+        const MAX_ROWS = 7; // If row hits this, lose a life
+        
+        // Game State
+        let state = 'START'; // START, PLAYING, TRANSITION, GAME_OVER
+        let score = 0;
+        let lives = 3;
+        let level = 1;
+        let timeLeft = 90; // จับเวลา 1.30 นาที (90 วินาที)
+        let pairsMatchedInLevel = 0;
+        let pairsNeededForNextLevel = 10;
+        let animationId;
+        
+        let lastTime = 0;
+        let deltaTime = 0;
+
+        // Grid & Entities
+        let columns = []; // Array of Arrays to hold balloons
+        let columnWidth = 0;
+        let balloonRadius = 0;
+        
+        let base = null; // Shooter base
+        let projectile = null; // Balloon currently flying
+        let particles = [];
+        let floatingTexts = [];
+        let decorations = [];
+
+        // --- STREAMING_CHUNK:Drawing Helper Functions... ---
+        // Resize Handler
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            columnWidth = canvas.width / NUM_COLUMNS;
+            balloonRadius = Math.min(columnWidth * 0.4, 40); // Max size 40px
+            
+            // Re-adjust columns visual positions if they exist
+            for(let i=0; i<NUM_COLUMNS; i++) {
+                if(columns[i]) {
+                    columns[i].forEach((b, rowIndex) => {
+                        b.x = i * columnWidth + columnWidth / 2;
+                        // y is handled in update
+                    });
+                }
+            }
+            if(base) {
+                base.y = canvas.height - 120; // Above controls
+                base.updateTargetX();
+            }
+            
+            generateDecorations();
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // Utilities
+        function randomInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+        function randomColor() { return BALLOON_COLORS[randomInt(0, BALLOON_COLORS.length - 1)]; }
+        function getComplementaryNumber(num) { return TARGET_SUM - num; }
+
+        // --- STREAMING_CHUNK:Classes Definition... ---
+        class Balloon {
+            constructor(colIndex, rowIndex, number) {
+                this.colIndex = colIndex;
+                this.rowIndex = rowIndex; // -1 if it's held by base
+                this.number = number !== undefined ? number : NUMBERS[randomInt(0, NUMBERS.length - 1)];
+                this.color = randomColor();
+                this.x = colIndex * columnWidth + columnWidth / 2;
+                this.y = rowIndex >= 0 ? -100 : canvas.height; // animate from top if grid, from bottom if base
+                this.targetY = rowIndex >= 0 ? 50 + rowIndex * (balloonRadius * 2 + 10) : 0;
+                this.isPopped = false;
+            }
+
+            update(dt) {
+                // Smooth fall to position
+                if (this.rowIndex >= 0) {
+                    this.targetY = 50 + this.rowIndex * (balloonRadius * 2.2);
+                    this.y += (this.targetY - this.y) * 10 * dt;
+                }
+            }
+
+            draw(ctx) {
+                if (this.isPopped) return;
+                
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                
+                // Draw string
+                if (this.rowIndex >= 0) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, balloonRadius);
+                    ctx.lineTo(0, balloonRadius + 15);
+                    ctx.strokeStyle = '#rgba(0,0,0,0.3)';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                    // Knot
+                    ctx.beginPath();
+                    ctx.moveTo(-5, balloonRadius + 5);
+                    ctx.lineTo(5, balloonRadius + 5);
+                    ctx.lineTo(0, balloonRadius + 10);
+                    ctx.fillStyle = this.color;
+                    ctx.fill();
+                }
+
+                // Main balloon body (slight oval)
+                ctx.beginPath();
+                ctx.ellipse(0, 0, balloonRadius, balloonRadius * 1.05, 0, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+                
+                // Highlight for 3D kawaii effect
+                ctx.beginPath();
+                ctx.ellipse(-balloonRadius*0.3, -balloonRadius*0.4, balloonRadius*0.2, balloonRadius*0.3, Math.PI/4, 0, Math.PI*2);
+                ctx.fillStyle = 'rgba(255,255,255,0.4)';
+                ctx.fill();
+
+                // Number
+                ctx.fillStyle = '#333';
+                ctx.font = `bold ${balloonRadius * 0.9}px Mali`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(this.number, 0, 0);
+
+                ctx.restore();
+            }
+        }
+
+        class BaseShooter {
+            constructor() {
+                this.colIndex = Math.floor(NUM_COLUMNS / 2);
+                this.x = this.colIndex * columnWidth + columnWidth / 2;
+                this.targetX = this.x;
+                this.y = canvas.height - 120;
+                this.heldBalloon = null;
+                this.nextBalloon = null;
+                this.reload();
+            }
+
+            updateTargetX() {
+                this.targetX = this.colIndex * columnWidth + columnWidth / 2;
+            }
+
+            moveLeft() {
+                if (this.colIndex > 0) this.colIndex--;
+                this.updateTargetX();
+            }
+
+            moveRight() {
+                if (this.colIndex < NUM_COLUMNS - 1) this.colIndex++;
+                this.updateTargetX();
+            }
+
+            update(dt) {
+                // Smooth move
+                this.x += (this.targetX - this.x) * 15 * dt;
+                if (this.heldBalloon) {
+                    this.heldBalloon.x = this.x;
+                    this.heldBalloon.y = this.y - balloonRadius - 10;
+                }
+            }
+
+            // A1: Smart Reload to ensure playability, prevent single pole bug
+            reload() {
+                // Move next to held
+                if (this.nextBalloon) {
+                    this.heldBalloon = this.nextBalloon;
+                } else {
+                    this.heldBalloon = new Balloon(this.colIndex, -1, this.getSmartNumber());
+                }
+                // Generate new next
+                this.nextBalloon = new Balloon(this.colIndex, -1, this.getSmartNumber());
+            }
+
+            getSmartNumber() {
+                // 50% chance to guarantee a matching number exists on the bottom row
+                if (Math.random() < 0.5) {
+                    let bottoms = [];
+                    for (let i = 0; i < NUM_COLUMNS; i++) {
+                        if (columns[i] && columns[i].length > 0) {
+                            bottoms.push(columns[i][columns[i].length - 1].number);
+                        }
+                    }
+                    if (bottoms.length > 0) {
+                        let randomBottom = bottoms[randomInt(0, bottoms.length - 1)];
+                        return getComplementaryNumber(randomBottom);
+                    }
+                }
+                return NUMBERS[randomInt(0, NUMBERS.length - 1)];
+            }
+
+            shoot() {
+                if (!this.heldBalloon || projectile !== null) return;
+                
+                projectile = this.heldBalloon;
+                projectile.colIndex = this.colIndex;
+                projectile.x = this.colIndex * columnWidth + columnWidth / 2;
+                projectile.isProjectile = true;
+                
+                // Immediately reload (A1 constraint)
+                this.heldBalloon = null;
+                this.reload();
+            }
+
+            draw(ctx) {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+
+                // Draw base character (cute cup/cannon)
+                ctx.fillStyle = '#a78bfa'; // Purple pastel
+                ctx.beginPath();
+                ctx.moveTo(-30, 30);
+                ctx.lineTo(30, 30);
+                ctx.lineTo(25, -20);
+                ctx.lineTo(-25, -20);
+                ctx.fill();
+
+                // Eyes
+                ctx.fillStyle = '#333';
+                ctx.beginPath(); ctx.arc(-10, -5, 3, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(10, -5, 3, 0, Math.PI*2); ctx.fill();
+                // Blush
+                ctx.fillStyle = '#ffb3ba';
+                ctx.beginPath(); ctx.arc(-15, 0, 4, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(15, 0, 4, 0, Math.PI*2); ctx.fill();
+                // Smile
+                ctx.strokeStyle = '#333';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(0, 0, 5, 0, Math.PI);
+                ctx.stroke();
+
+                // Draw next balloon preview small
+                if (this.nextBalloon) {
+                    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+                    ctx.beginPath(); ctx.arc(45, 10, 15, 0, Math.PI*2); ctx.fill();
+                    ctx.fillStyle = this.nextBalloon.color;
+                    ctx.beginPath(); ctx.arc(45, 10, 12, 0, Math.PI*2); ctx.fill();
+                    ctx.fillStyle = '#333';
+                    ctx.font = 'bold 10px Mali';
+                    ctx.fillText(this.nextBalloon.number, 45, 10);
+                }
+
+                ctx.restore();
+
+                // Draw held balloon
+                if (this.heldBalloon) {
+                    this.heldBalloon.draw(ctx);
+                }
+            }
+        }
+
+        // --- STREAMING_CHUNK:VFX and Decorations... ---
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x; this.y = y; this.color = color;
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 150 + 50;
+                this.vx = Math.cos(angle) * speed;
+                this.vy = Math.sin(angle) * speed;
+                this.life = 1.0;
+                this.decay = Math.random() * 1.5 + 0.5;
+                this.size = Math.random() * 4 + 2;
+            }
+            update(dt) {
+                this.x += this.vx * dt;
+                this.y += this.vy * dt;
+                this.vy += 200 * dt; // gravity
+                this.life -= this.decay * dt;
+            }
+            draw(ctx) {
+                if (this.life <= 0) return;
+                ctx.globalAlpha = this.life;
+                ctx.fillStyle = this.color;
+                // Draw star shape for particle
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI*2);
+                ctx.fill();
+                ctx.globalAlpha = 1.0;
+            }
+        }
+
+        class FloatingText {
+            constructor(x, y, text, color) {
+                this.x = x; this.y = y; this.text = text; this.color = color;
+                this.life = 1.5;
+            }
+            update(dt) {
+                this.y -= 40 * dt;
+                this.life -= dt;
+            }
+            draw(ctx) {
+                if (this.life <= 0) return;
+                ctx.globalAlpha = this.life;
+                ctx.fillStyle = this.color;
+                ctx.font = 'bold 24px Mali';
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = 3;
+                ctx.strokeText(this.text, this.x, this.y);
+                ctx.fillText(this.text, this.x, this.y);
+                ctx.globalAlpha = 1.0;
+            }
+        }
+
+        function generateDecorations() {
+            decorations = [];
+            // Clouds
+            for(let i=0; i<4; i++) {
+                decorations.push({
+                    type: 'cloud',
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * (canvas.height * 0.4),
+                    s: Math.random() * 0.5 + 0.5,
+                    vx: (Math.random() * 10 + 5) * (Math.random()>0.5?1:-1)
+                });
+            }
+        }
+
+        function drawBackground() {
+            // Sky gradient is handled by css background, but let's add some canvas elements
+            // Sun
+            ctx.fillStyle = 'rgba(255, 230, 150, 0.8)';
+            ctx.beginPath();
+            ctx.arc(canvas.width - 60, 60, 40, 0, Math.PI*2);
+            ctx.fill();
+
+            // Clouds
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+            decorations.forEach(d => {
+                if (d.type === 'cloud') {
+                    d.x += d.vx * deltaTime;
+                    if(d.x > canvas.width + 100) d.x = -100;
+                    if(d.x < -100) d.x = canvas.width + 100;
+                    
+                    ctx.save();
+                    ctx.translate(d.x, d.y);
+                    ctx.scale(d.s, d.s);
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 30, 0, Math.PI*2);
+                    ctx.arc(20, -10, 25, 0, Math.PI*2);
+                    ctx.arc(40, 0, 30, 0, Math.PI*2);
+                    ctx.fill();
+                    ctx.restore();
+                }
+            });
+
+            // Hills at bottom (behind UI)
+            ctx.fillStyle = '#bbf7d0'; // Green pastel
+            ctx.beginPath();
+            ctx.ellipse(canvas.width * 0.2, canvas.height, canvas.width * 0.6, 200, 0, Math.PI, 0);
+            ctx.fill();
+            ctx.fillStyle = '#86efac';
+            ctx.beginPath();
+            ctx.ellipse(canvas.width * 0.8, canvas.height, canvas.width * 0.7, 150, 0, Math.PI, 0);
+            ctx.fill();
+        }
+
+        function spawnParticles(x, y, color) {
+            for(let i=0; i<15; i++) {
+                particles.push(new Particle(x, y, color));
+            }
+        }
+
+        // --- STREAMING_CHUNK:Game Logic and Rules... ---
+        function initLevel() {
+            columns = [];
+            for (let i = 0; i < NUM_COLUMNS; i++) {
+                columns[i] = [];
+                // Start with 2-3 balloons per column
+                let startRows = randomInt(2, 3);
+                for (let r = 0; r < startRows; r++) {
+                    columns[i].push(new Balloon(i, r));
+                }
+            }
+            base = new BaseShooter();
+            projectile = null;
+            updateUI();
+        }
+
+        function updateUI() {
+            scoreDisplay.textContent = score;
+            let heartsHTML = '';
+            for(let i=0; i<3; i++) {
+                heartsHTML += `<span class="text-2xl">${i < lives ? '❤️' : '🩶'}</span>`;
+            }
+            livesDisplay.innerHTML = heartsHTML;
+        }
+
+        function updateTimerDisplay() {
+            let minutes = Math.floor(Math.ceil(timeLeft) / 60);
+            let seconds = Math.ceil(timeLeft) % 60;
+            timeDisplay.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            
+            // เตือนเมื่อเวลาเหลือน้อยกว่า 10 วินาที
+            if (timeLeft <= 10) {
+                timeDisplay.classList.add('text-red-500', 'animate-pulse');
+            } else {
+                timeDisplay.classList.remove('text-red-500', 'animate-pulse');
+            }
+        }
+
+        function processCollision() {
+            if (!projectile) return;
+
+            let colIndex = projectile.colIndex;
+            let col = columns[colIndex];
+            
+            // Calculate target collision Y
+            // If column is empty, target is top. Else target is below bottom balloon.
+            let bottomRow = col.length > 0 ? col.length - 1 : -1;
+            let targetY = 50 + (bottomRow + 1) * (balloonRadius * 2.2);
+
+            // Move projectile up
+            let speed = level === 1 ? 500 : 700;
+            projectile.y -= speed * deltaTime;
+
+            // Check collision (A2 constraint: trigger once when reached position)
+            if (projectile.y <= targetY) {
+                // Snapped to position
+                projectile.y = targetY;
+                projectile.rowIndex = bottomRow + 1;
+                
+                // Logic: Sum to Target (100)
+                // A3 constraint: Check if column not empty before accessing bottom balloon
+                if (col.length > 0) {
+                    let bottomBalloon = col[col.length - 1];
+                    let sum = bottomBalloon.number + projectile.number;
+
+                    if (sum === TARGET_SUM) {
+                        // Match!
+                        score += 10;
+                        pairsMatchedInLevel++;
+                        
+                        spawnParticles(projectile.x, projectile.y, projectile.color);
+                        spawnParticles(bottomBalloon.x, bottomBalloon.y, bottomBalloon.color);
+                        floatingTexts.push(new FloatingText(projectile.x, projectile.y, '+10', '#ec4899'));
+                        
+                        // Remove bottom balloon
+                        col.pop();
+                        // Projectile is not added.
+                        
+                    } else {
+                        // Miss! Append to array
+                        col.push(projectile);
+                    }
+                } else {
+                    // Empty column, just append
+                    col.push(projectile);
+                }
+
+                // Clean up projectile reference
+                projectile = null;
+                updateUI();
+                checkGameState();
+            }
+        }
+
+        function checkGameState() {
+            // Check for game over (A3 constraint: column too long)
+            let loseLife = false;
+            let overflowColIndex = -1;
+
+            for (let i = 0; i < NUM_COLUMNS; i++) {
+                if (columns[i].length >= MAX_ROWS) {
+                    loseLife = true;
+                    overflowColIndex = i;
+                    break;
+                }
+            }
+
+            if (loseLife) {
+                lives--;
+                updateUI();
+                
+                // Punish but let them continue: Pop the bottom balloon of the overflowed column to make space
+                if (overflowColIndex !== -1 && columns[overflowColIndex].length > 0) {
+                     let b = columns[overflowColIndex].pop();
+                     spawnParticles(b.x, b.y, 'gray');
+                     floatingTexts.push(new FloatingText(b.x, b.y, 'ล้น!', 'red'));
+                }
+
+                if (lives <= 0) {
+                    endGame();
+                    return;
+                }
+            }
+
+            // Check for level complete
+            if (pairsMatchedInLevel >= pairsNeededForNextLevel) {
+                level++;
+                pairsMatchedInLevel = 0;
+                pairsNeededForNextLevel += 5;
+                state = 'TRANSITION';
+                floatingTexts.push(new FloatingText(canvas.width/2, canvas.height/2, 'ด่าน 2 เริ่ม!', '#2563eb'));
+                setTimeout(() => {
+                    initLevel(); // Reset grid for next level
+                    state = 'PLAYING';
+                }, 2000);
+            }
+        }
+
+        // --- STREAMING_CHUNK:Main Game Loop and Controls... ---
+        function gameLoop(timestamp) {
+            if (!lastTime) lastTime = timestamp;
+            deltaTime = (timestamp - lastTime) / 1000;
+            // Cap delta time to prevent physics explosions on lag
+            if (deltaTime > 0.1) deltaTime = 0.1; 
+            lastTime = timestamp;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            drawBackground();
+
+            if (state === 'PLAYING' || state === 'TRANSITION') {
+                // Update Timer
+                if (state === 'PLAYING') {
+                    timeLeft -= deltaTime;
+                    updateTimerDisplay();
+                    
+                    if (timeLeft <= 0) {
+                        timeLeft = 0;
+                        updateTimerDisplay();
+                        endGame();
+                        return; // หยุดการคำนวณเฟรมนี้เมื่อหมดเวลา
+                    }
+                }
+
+                // Update and Draw Columns
+                for (let i = 0; i < NUM_COLUMNS; i++) {
+                    columns[i].forEach(b => {
+                        b.update(deltaTime);
+                        b.draw(ctx);
+                    });
+                }
+
+                // Update Base & Projectile
+                if (state === 'PLAYING') {
+                    base.update(deltaTime);
+                    base.draw(ctx);
+                }
+
+                if (projectile) {
+                    projectile.draw(ctx);
+                    processCollision();
+                }
+            }
+
+            // Update & Draw VFX
+            particles.forEach(p => { p.update(deltaTime); p.draw(ctx); });
+            particles = particles.filter(p => p.life > 0);
+            
+            floatingTexts.forEach(t => { t.update(deltaTime); t.draw(ctx); });
+            floatingTexts = floatingTexts.filter(t => t.life > 0);
+
+            animationId = requestAnimationFrame(gameLoop);
+        }
+
+        // Input Handling
+        function handleLeft() { if(state==='PLAYING') base.moveLeft(); }
+        function handleRight() { if(state==='PLAYING') base.moveRight(); }
+        function handleShoot() { if(state==='PLAYING') base.shoot(); }
+
+        document.getElementById('btnLeft').addEventListener('pointerdown', (e) => { e.preventDefault(); handleLeft(); });
+        document.getElementById('btnRight').addEventListener('pointerdown', (e) => { e.preventDefault(); handleRight(); });
+        document.getElementById('btnShoot').addEventListener('pointerdown', (e) => { e.preventDefault(); handleShoot(); });
+        
+        // Keyboard fallback
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') handleLeft();
+            if (e.key === 'ArrowRight') handleRight();
+            if (e.key === 'ArrowUp' || e.key === ' ') handleShoot();
+        });
+
+        // --- STREAMING_CHUNK:App Flow & Supabase Integration... ---
+        document.getElementById('btnStartGame').addEventListener('click', () => {
+            howToPlayModal.classList.add('hidden');
+            helpBtnContainer.classList.remove('hidden');
+            resetGame();
+        });
+
+        document.getElementById('btnHelp').addEventListener('click', () => {
+            howToPlayModal.classList.remove('hidden');
+        });
+
+        document.getElementById('btnRestart').addEventListener('click', () => {
+            gameOverModal.classList.add('hidden');
+            resetGame();
+        });
+
+        function resetGame() {
+            score = 0;
+            lives = 3;
+            level = 1;
+            timeLeft = 90; // รีเซ็ตเวลาเป็น 90 วินาที
+            pairsMatchedInLevel = 0;
+            particles = [];
+            floatingTexts = [];
+            initLevel();
+            updateTimerDisplay();
+            state = 'PLAYING';
+            btnReturn.classList.add('hidden'); // Hide return button on restart
+        }
+
+        async function endGame() {
+            state = 'GAME_OVER';
+            gameOverModal.classList.remove('hidden');
+            
+            const gameOverTitle = document.getElementById('gameOverTitle');
+            // เปลี่ยนข้อความบนจอ หากจบเกมเพราะเวลาหมด
+            if (timeLeft <= 0) {
+                gameOverTitle.textContent = "หมดเวลา!";
+                gameOverTitle.className = "text-4xl font-bold text-orange-500 mb-2";
+            } else {
+                gameOverTitle.textContent = "จบเกม!";
+                gameOverTitle.className = "text-3xl font-bold text-purple-600 mb-2";
+            }
+            
+            finalScoreText.textContent = score;
+            helpBtnContainer.classList.add('hidden');
+
+            // Draw Stars based on lives
+            let starHTML = '';
+            for(let i=0; i<3; i++) {
+                starHTML += i < lives ? '⭐' : '🕸️'; 
+            }
+            // If lives is 0, they get at least a participation medal or something based on score. Let's just show lives left as stars.
+            if(lives === 0 && score > 0) starHTML = '⭐'; // At least 1 if they scored
+            if(lives === 0 && score === 0) starHTML = '😢';
+            starsDisplay.innerHTML = starHTML;
+
+            // Save to Supabase
+            saveStatusText.textContent = "กำลังบันทึกคะแนน...";
+            saveStatusText.className = "text-sm font-bold mb-4 h-6 text-blue-600";
+            
+            try {
+                const { data, error } = await supabaseClient
+                    .from('scores')
+                    .insert([
+                        { student_id: studentId, game_id: gameId, score: score }
+                    ]);
+
+                if (error) throw error;
+                
+                saveStatusText.textContent = "บันทึกคะแนนสำเร็จ! ✅";
+                saveStatusText.className = "text-sm font-bold mb-4 h-6 text-green-600";
+                btnReturn.classList.remove('hidden'); // Show return button!
+
+            } catch (error) {
+                console.error("Error saving score:", error);
+                saveStatusText.textContent = "เกิดข้อผิดพลาดในการบันทึกคะแนน ❌";
+                saveStatusText.className = "text-sm font-bold mb-4 h-6 text-red-600";
+            }
+        }
+
+        // Boot
+        generateDecorations();
+        animationId = requestAnimationFrame(gameLoop);
+
+    </script>
+</body>
+</html>
