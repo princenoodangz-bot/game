@@ -12,7 +12,7 @@
             font-family: 'Mali', cursive;
             margin: 0;
             overflow: hidden; /* ห้ามเลื่อนหน้าจอ */
-            background-color: #87CEEB; /* สีฟ้าท้องฟ้า */
+            background-color: #87CEEB;
             touch-action: none;
             user-select: none;
             -webkit-user-select: none;
@@ -31,7 +31,6 @@
         .pointer-events-auto { pointer-events: auto; }
         .hidden { display: none !important; }
         
-        /* เอฟเฟกต์กระพริบจอแดงตอนโดนชน */
         #damage-flash {
             transition: opacity 0.2s ease-out;
         }
@@ -39,18 +38,14 @@
 </head>
 <body>
 
-<!-- แคนวาสเต็มหน้าจอ -->
 <canvas id="gameCanvas"></canvas>
-
-<!-- เอฟเฟกต์กระพริบเมื่อโดนชน -->
 <div id="damage-flash" class="absolute inset-0 bg-red-500/40 opacity-0 pointer-events-none z-10"></div>
 
-<!-- เลเยอร์ UI (โจทย์, คะแนน, หัวใจ) -->
+<!-- เลเยอร์ UI -->
 <div id="ui-layer" class="ui-layer flex flex-col items-center p-4 pt-6 z-20">
-    
-    <!-- โจทย์คำถาม อยู่ด้านบนสุด -->
+    <!-- โจทย์คำถาม (จะอัปเดตแบบ Real-time ตามท่อที่อยู่ตรงหน้า) -->
     <div id="question-display" class="w-full max-w-xl mx-auto bg-blue-500/90 border-4 border-white text-white text-3xl md:text-5xl font-bold text-center py-3 md:py-4 px-6 rounded-2xl shadow-xl hidden backdrop-blur-sm transition-all">
-        กำลังโหลด...
+        กำลังโหลดโจทย์...
     </div>
     
     <!-- คะแนนและหัวใจ -->
@@ -70,7 +65,7 @@
             <ul class="list-none space-y-2">
                 <li>👆 <b>แตะจอ</b> เพื่อกระพือปีก</li>
                 <li>✅ <b>เข้าช่องถูก:</b> +100 คะแนน</li>
-                <li>❌ <b>เข้าช่องผิด:</b> ไม่ได้คะแนน (ไม่เสียหัวใจ)</li>
+                <li>❌ <b>เข้าช่องผิด:</b> เสียหัวใจครึ่งดวง (0.5 💔)</li>
                 <li>💥 <b>ชนท่อสีเขียว:</b> เสียหัวใจครึ่งดวง (0.5 💔)</li>
             </ul>
         </div>
@@ -119,7 +114,7 @@
 
     if (isGuest) document.getElementById('guest-warning').classList.remove('hidden');
 
-    // --- 3. ระบบ Canvas แบบเต็มจอ ---
+    // --- 3. ระบบ Canvas ---
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     let cw, ch;
@@ -137,14 +132,14 @@
     let lastTime = 0;
     let gameState = 'start';
     let score = 0;
-    let hearts = 3.0; // รองรับทศนิยม (ครึ่งดวง = 0.5)
+    let hearts = 3.0;
     let pipes = [];
     let clouds = [];
-    let floatingTexts = []; // ข้อความลอยเวลาโดนชน
+    let floatingTexts = [];
     let spawnTimer = 0;
     
-    // ปรับให้เกิดท่อเร็วขึ้น (ทุก 4.5 วิ) เพื่อให้ข้อความโจทย์ออกไวขึ้น
-    const SPAWN_INTERVAL = 4500; 
+    // ปรับให้ท่อห่างขึ้น
+    const SPAWN_INTERVAL = 5500; 
 
     let bird = {
         x: 0, y: 0, velocity: 0, radius: 20,
@@ -199,8 +194,7 @@
 
     function createPipe() {
         let q = generateQuestion();
-        document.getElementById('question-display').innerText = q.qText;
-
+        
         const pipeWidth = Math.max(60, cw * 0.12);
         const gapSize = Math.max(120, ch * 0.25); 
         const safeMargin = ch * 0.15;
@@ -218,13 +212,27 @@
             topText: correctIsTop ? q.ans : q.dummy,
             bottomText: correctIsTop ? q.dummy : q.ans,
             correctIsTop: correctIsTop,
+            qText: q.qText, // เก็บคำถามไว้ในตัวท่อ
             scored: false, hit: false
         });
     }
 
-    // --- ระบบเอฟเฟกต์การโดนชน ---
+    // --- อัปเดตโจทย์บนหน้าจอแบบ Real-time ---
+    function updateQuestionDisplay() {
+        // หา "ท่อถัดไป" ที่กำลังจะบินไปถึง และยังไม่ถูกชนหรือเก็บคะแนน
+        let nextPipe = pipes.find(p => !p.scored && !p.hit && p.x + p.w > bird.x - bird.radius);
+        const display = document.getElementById('question-display');
+        
+        if (nextPipe) {
+            display.innerText = nextPipe.qText;
+        } else {
+            // ถ้านกผ่านท่อไปแล้ว ให้ขึ้นข้อความรอระหว่างที่ท่อใหม่ยังมาไม่ถึง
+            display.innerText = "รอโจทย์ถัดไป...";
+        }
+    }
+
+    // --- เอฟเฟกต์ ---
     function showDamageEffect(x, y) {
-        // 1. กระพริบหน้าจอแดง
         const flash = document.getElementById('damage-flash');
         flash.classList.remove('opacity-0');
         flash.classList.add('opacity-100');
@@ -233,26 +241,23 @@
             flash.classList.add('opacity-0');
         }, 200);
 
-        // 2. เพิ่มข้อความลอยตัว
         floatingTexts.push({ x: x, y: y, text: "-0.5 💔", timer: 1000 });
     }
 
-    // วาดข้อความลอยตัว (Floating Texts)
     function drawFloatingTexts(deltaTime) {
         for (let i = floatingTexts.length - 1; i >= 0; i--) {
             let ft = floatingTexts[i];
-            ctx.fillStyle = '#EF4444'; // สีแดง
+            ctx.fillStyle = '#EF4444';
             ctx.font = 'bold 30px Mali';
             ctx.textAlign = 'center';
             ctx.fillText(ft.text, ft.x, ft.y);
             
-            ft.y -= (ch * 0.0001) * deltaTime; // ลอยขึ้น
+            ft.y -= (ch * 0.0001) * deltaTime; 
             ft.timer -= deltaTime;
             if (ft.timer <= 0) floatingTexts.splice(i, 1);
         }
     }
 
-    // ก้อนเมฆ
     function initClouds() {
         clouds = [];
         for(let i=0; i<4; i++) {
@@ -281,7 +286,6 @@
         if(e) e.preventDefault(); 
         if (gameState === 'playing') bird.flap();
     }
-    
     canvas.addEventListener('touchstart', handleFlap, { passive: false });
     canvas.addEventListener('mousedown', handleFlap);
     document.addEventListener('keydown', (e) => {
@@ -297,12 +301,13 @@
         bird.radius = Math.max(15, Math.min(cw*0.04, 25)); 
         
         initClouds();
-        // สั่งสร้างท่อ + คำถามแรกทันทีที่เริ่มเกม เพื่อความรวดเร็ว
         createPipe();
         spawnTimer = 0; 
         lastTime = performance.now();
         
         updateUI();
+        updateQuestionDisplay(); // เรียกใช้ครั้งแรก
+        
         document.getElementById('start-screen').classList.add('hidden');
         document.getElementById('game-over-screen').classList.add('hidden');
         document.getElementById('question-display').classList.remove('hidden');
@@ -356,21 +361,20 @@
     function updateUI() {
         document.getElementById('score-display').innerText = 'คะแนน: ' + score;
         
-        // คำนวณแสดงหัวใจแบบครึ่งดวง
         let heartStr = '';
         for (let i = 1; i <= 3; i++) {
             if (hearts >= i) {
-                heartStr += '❤️'; // เต็มดวง
+                heartStr += '❤️';
             } else if (hearts + 0.5 === i) {
-                heartStr += '💔'; // ครึ่งดวง
+                heartStr += '💔';
             } else {
-                heartStr += '🤍'; // หมดดวง
+                heartStr += '🤍';
             }
         }
         document.getElementById('hearts-display').innerText = heartStr;
     }
 
-    // --- Main Loop (Delta Time) ---
+    // --- Main Loop ---
     function gameLoop(timestamp) {
         if (gameState !== 'playing') return;
 
@@ -390,7 +394,10 @@
             spawnTimer = 0;
         }
 
-        const pipeSpeed = cw * 0.00025; 
+        // ปรับให้ท่อเลื่อนเร็วขึ้นนิดหน่อย เพื่อความกระชับ
+        const pipeSpeed = cw * 0.00035; 
+        
+        let pipePassedThisFrame = false;
 
         for (let i = pipes.length - 1; i >= 0; i--) {
             let p = pipes[i];
@@ -430,20 +437,27 @@
                     let inBottomGap = (bird.y > p.bottomGapY && bird.y < p.bottomGapY + p.gapSize);
 
                     if (inTopGap || inBottomGap) {
-                        if (bird.x > p.x + p.w/2) {
+                        if (bird.x > p.x + p.w/2) { // ถ้านกบินเลยจุดกึ่งกลางของท่อแล้ว
                             if ((inTopGap && p.correctIsTop) || (inBottomGap && !p.correctIsTop)) {
                                 score += 100;
                                 p.scored = true;
+                                pipePassedThisFrame = true;
                                 updateUI();
                             } else {
-                                // บินเข้าช่องผิด: ไม่หักคะแนน/หัวใจ แค่ไม่ผ่านเงื่อนไขการได้คะแนน
-                                p.hit = true; 
+                                // บินเข้าช่องผิด: หักครึ่งหัวใจ
+                                hearts -= 0.5;
+                                p.hit = true;
+                                pipePassedThisFrame = true;
+                                showDamageEffect(bird.x, bird.y);
+                                updateUI();
+                                if (hearts <= 0) gameOver();
                             }
                         }
                     } else {
-                        // ชนตัวท่อสีเขียว: เสียหัวใจ 0.5 ดวง
+                        // ชนตัวท่อ: หักครึ่งหัวใจ
                         hearts -= 0.5;
                         p.hit = true;
+                        pipePassedThisFrame = true;
                         showDamageEffect(bird.x, bird.y);
                         updateUI();
                         if (hearts <= 0) gameOver();
@@ -454,7 +468,11 @@
             if (p.x + p.w < 0) pipes.splice(i, 1);
         }
 
-        // วาดข้อความลอยตัวหลังสุดเพื่อให้อยู่บนสุดของเกม
+        // อัปเดตข้อความบนจอ หากเพิ่งผ่านหรือชนท่อในเฟรมนี้
+        if (pipePassedThisFrame || pipes.length > 0) {
+            updateQuestionDisplay();
+        }
+
         drawFloatingTexts(deltaTime);
 
         if (gameState === 'playing') requestAnimationFrame(gameLoop);
