@@ -72,8 +72,12 @@
         <button id="start-btn" class="w-full bg-green-500 text-white font-bold text-2xl py-4 px-6 rounded-xl hover:bg-green-600 transform transition active:scale-95 shadow-lg border-b-4 border-green-700">
             เริ่มเล่น! 🚀
         </button>
+        
+        <!-- แสดงสถานะของรหัส ID เพื่อให้ตรวจสอบได้ง่าย -->
         <p id="guest-warning" class="text-xs text-red-500 mt-4 hidden bg-red-50 p-2 rounded border border-red-200">
             โหมดทดลองเล่น (ไม่บันทึกคะแนน)
+        </p>
+        <p id="debug-info" class="text-xs text-blue-700 mt-4 hidden bg-blue-50 p-2 rounded border border-blue-200 font-mono">
         </p>
     </div>
 </div>
@@ -112,7 +116,13 @@
     const gameId = urlParams.get('game_id') || 'math_g5_flappy';
     const isGuest = !studentId;
 
-    if (isGuest) document.getElementById('guest-warning').classList.remove('hidden');
+    if (isGuest) {
+        document.getElementById('guest-warning').classList.remove('hidden');
+    } else {
+        const debugInfo = document.getElementById('debug-info');
+        debugInfo.innerHTML = `รหัสที่รับมา: <b>${studentId}</b>`;
+        debugInfo.classList.remove('hidden');
+    }
 
     // --- 3. ระบบ Canvas ---
     const canvas = document.getElementById('gameCanvas');
@@ -219,14 +229,12 @@
 
     // --- อัปเดตโจทย์บนหน้าจอแบบ Real-time ---
     function updateQuestionDisplay() {
-        // หา "ท่อถัดไป" ที่กำลังจะบินไปถึง และยังไม่ถูกชนหรือเก็บคะแนน
         let nextPipe = pipes.find(p => !p.scored && !p.hit && p.x + p.w > bird.x - bird.radius);
         const display = document.getElementById('question-display');
         
         if (nextPipe) {
             display.innerText = nextPipe.qText;
         } else {
-            // ถ้านกผ่านท่อไปแล้ว ให้ขึ้นข้อความรอระหว่างที่ท่อใหม่ยังมาไม่ถึง
             display.innerText = "รอโจทย์ถัดไป...";
         }
     }
@@ -306,7 +314,7 @@
         lastTime = performance.now();
         
         updateUI();
-        updateQuestionDisplay(); // เรียกใช้ครั้งแรก
+        updateQuestionDisplay();
         
         document.getElementById('start-screen').classList.add('hidden');
         document.getElementById('game-over-screen').classList.add('hidden');
@@ -350,8 +358,10 @@
             statusUI.innerHTML = '✅ บันทึกคะแนนสำเร็จ!';
             statusUI.className = 'text-sm font-semibold text-green-700 mb-6 bg-green-100 py-3 rounded-xl border border-green-300';
         } catch (err) {
-            statusUI.innerHTML = '❌ บันทึกไม่สำเร็จ (รหัสนักเรียนอาจไม่ถูกต้อง)';
-            statusUI.className = 'text-sm font-semibold text-red-600 mb-6 bg-red-100 py-3 rounded-xl border border-red-200';
+            console.error("Supabase Save Error:", err);
+            // แสดง Error จริงออกมาหน้าจอเลย จะได้รู้ว่าพังที่ชนิดข้อมูลหรือรหัสไม่มีในตาราง
+            statusUI.innerHTML = `❌ บันทึกไม่สำเร็จ<br><span class="text-xs font-normal text-red-600 mt-2 block break-words">ข้อผิดพลาด: ${err.message}</span>`;
+            statusUI.className = 'text-sm font-semibold text-red-600 mb-6 bg-red-100 py-3 px-2 rounded-xl border border-red-200';
         }
 
         homeBtn.classList.remove('hidden');
@@ -437,14 +447,13 @@
                     let inBottomGap = (bird.y > p.bottomGapY && bird.y < p.bottomGapY + p.gapSize);
 
                     if (inTopGap || inBottomGap) {
-                        if (bird.x > p.x + p.w/2) { // ถ้านกบินเลยจุดกึ่งกลางของท่อแล้ว
+                        if (bird.x > p.x + p.w/2) {
                             if ((inTopGap && p.correctIsTop) || (inBottomGap && !p.correctIsTop)) {
                                 score += 100;
                                 p.scored = true;
                                 pipePassedThisFrame = true;
                                 updateUI();
                             } else {
-                                // บินเข้าช่องผิด: หักครึ่งหัวใจ
                                 hearts -= 0.5;
                                 p.hit = true;
                                 pipePassedThisFrame = true;
@@ -454,7 +463,6 @@
                             }
                         }
                     } else {
-                        // ชนตัวท่อ: หักครึ่งหัวใจ
                         hearts -= 0.5;
                         p.hit = true;
                         pipePassedThisFrame = true;
@@ -468,7 +476,6 @@
             if (p.x + p.w < 0) pipes.splice(i, 1);
         }
 
-        // อัปเดตข้อความบนจอ หากเพิ่งผ่านหรือชนท่อในเฟรมนี้
         if (pipePassedThisFrame || pipes.length > 0) {
             updateQuestionDisplay();
         }
