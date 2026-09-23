@@ -40,12 +40,12 @@
 <!-- เลเยอร์ UI (โจทย์, คะแนน, หัวใจ) -->
 <div id="ui-layer" class="ui-layer flex flex-col items-center p-4 pt-6 z-10">
     
-    <!-- โจทย์คำถาม ย้ายมาอยู่ด้านบนสุด -->
+    <!-- โจทย์คำถาม อยู่ด้านบนสุด -->
     <div id="question-display" class="w-full max-w-xl mx-auto bg-blue-500/90 border-4 border-white text-white text-3xl md:text-5xl font-bold text-center py-3 md:py-4 px-6 rounded-2xl shadow-xl hidden backdrop-blur-sm transition-all">
         (2 + 3) x 4 = ?
     </div>
     
-    <!-- คะแนนและหัวใจ (อยู่ใต้โจทย์) -->
+    <!-- คะแนนและหัวใจ -->
     <div class="w-full max-w-xl mx-auto flex justify-between items-center mt-4 px-2">
         <div id="score-display" class="text-2xl md:text-3xl font-bold text-white drop-shadow-md" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">คะแนน: 0</div>
         <div id="hearts-display" class="text-2xl md:text-3xl drop-shadow-md" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">❤️❤️❤️</div>
@@ -61,9 +61,9 @@
             <p class="mb-2">🎯 <b>เป้าหมาย:</b> คิดเลขแล้วบินเข้าช่องที่ถูกต้อง</p>
             <ul class="list-none space-y-2">
                 <li>👆 <b>แตะจอ</b> เพื่อกระพือปีกเบาๆ</li>
-                <li>➕ <b>อ่านโจทย์</b> ด้านบนให้ดี</li>
-                <li>✅ <b>บินผ่านช่อง</b> ที่เป็นคำตอบที่ถูก</li>
-                <li>💡 <b>ทิป:</b> ปล่อยให้นกร่อนลงช้าๆ ไม่ต้องรีบ!</li>
+                <li>✅ <b>บินผ่านช่องถูก:</b> ได้คะแนน</li>
+                <li>❌ <b>บินผ่านช่องผิด:</b> ไม่ได้คะแนน (ไม่เสียหัวใจ)</li>
+                <li>💥 <b>ชนท่อสีเขียว:</b> เสียหัวใจ 1 ดวง</li>
             </ul>
         </div>
         <button id="start-btn" class="w-full bg-green-500 text-white font-bold text-2xl py-4 px-6 rounded-xl hover:bg-green-600 transform transition active:scale-95 shadow-lg border-b-4 border-green-700">
@@ -123,7 +123,7 @@
         canvas.height = ch;
     }
     window.addEventListener('resize', resizeCanvas);
-    resizeCanvas(); // เซ็ตขนาดครั้งแรก
+    resizeCanvas();
 
     // --- 4. ตัวแปรเกม ---
     let lastTime = 0;
@@ -135,9 +135,8 @@
     let spawnTimer = 0;
     let currentQuestion = null;
 
-    // --- 5. ฟิสิกส์อิงตามสัดส่วนจอ + Delta Time ---
-    // เพื่อให้เล่นได้ความเร็วเท่ากันทุกเครื่อง
-    const SPAWN_INTERVAL = 4000; // สร้างท่อทุกๆ 4 วินาที
+    // เพิ่มระยะเวลาเกิดท่อ (ห่างขึ้น) จาก 4000 เป็น 5500 มิลลิวินาที
+    const SPAWN_INTERVAL = 5500; 
 
     let bird = {
         x: 0, y: 0, velocity: 0, radius: 20,
@@ -161,17 +160,14 @@
             ctx.fill();
         },
         update(deltaTime) {
-            // คำนวณแรงโน้มถ่วงให้ตกถึงพื้นในเวลาพอเหมาะ (สัดส่วนตามความสูงจอ)
             const gravity = ch * 0.000003; 
             this.velocity += gravity * deltaTime;
             this.y += this.velocity * deltaTime;
 
-            // ชนขอบบน/ล่าง
             if (this.y < this.radius) { this.y = this.radius; this.velocity = 0; }
             if (this.y > ch - this.radius) { this.y = ch - this.radius; this.velocity = 0; }
         },
         flap() {
-            // คำนวณแรงกระโดดตามความสูงจอ
             const flapStrength = ch * -0.0008; 
             this.velocity = flapStrength;
         }
@@ -198,20 +194,16 @@
         currentQuestion = q;
         document.getElementById('question-display').innerText = q.qText;
 
-        // ขนาดท่ออิงตามหน้าจอ
         const pipeWidth = Math.max(60, cw * 0.12);
-        const gapSize = Math.max(120, ch * 0.25); // ช่องกว้างมากพอให้บินสบาย
+        const gapSize = Math.max(120, ch * 0.25); 
         const safeMargin = ch * 0.15;
         
-        // ตำแหน่งช่องบน
         const topGapY = safeMargin + Math.random() * (ch * 0.25);
-        // ตำแหน่งช่องล่าง
         const bottomGapY = topGapY + gapSize + (ch * 0.15) + Math.random() * (ch * 0.1);
-        
         const correctIsTop = Math.random() > 0.5;
 
         pipes.push({
-            x: cw, // เริ่มที่ขอบขวา
+            x: cw,
             w: pipeWidth,
             topGapY: topGapY,
             bottomGapY: bottomGapY,
@@ -248,11 +240,10 @@
 
     // --- ควบคุม ---
     function handleFlap(e) {
-        if(e) e.preventDefault(); // กันจอมือถือขยับ
+        if(e) e.preventDefault(); 
         if (gameState === 'playing') bird.flap();
     }
     
-    // ดักจับที่ Canvas เท่านั้น เพื่อให้ปุ่ม UI กดได้
     canvas.addEventListener('touchstart', handleFlap, { passive: false });
     canvas.addEventListener('mousedown', handleFlap);
     document.addEventListener('keydown', (e) => {
@@ -262,10 +253,10 @@
     // --- เริ่มและจบเกม ---
     function initGame() {
         score = 0; hearts = 3; pipes = [];
-        bird.x = Math.max(50, cw * 0.2); // อยู่ด้านซ้าย
+        bird.x = Math.max(50, cw * 0.2); 
         bird.y = ch / 2;
         bird.velocity = 0;
-        bird.radius = Math.max(15, Math.min(cw*0.04, 25)); // ปรับขนาดนกตามจอ
+        bird.radius = Math.max(15, Math.min(cw*0.04, 25)); 
         
         initClouds();
         spawnTimer = SPAWN_INTERVAL; 
@@ -318,7 +309,6 @@
             statusUI.className = 'text-sm font-semibold text-red-600 mb-6 bg-red-100 py-3 rounded-xl border border-red-200';
         }
 
-        // แสดงปุ่มหลังบันทึกเสร็จ
         homeBtn.classList.remove('hidden');
         restartBtn.classList.remove('hidden');
     }
@@ -336,55 +326,44 @@
 
         let deltaTime = timestamp - lastTime;
         lastTime = timestamp;
-        // กันบั๊กเวลาสลับแท็บแล้ว deltaTime พุ่งสูง
         if (deltaTime > 100) deltaTime = 16; 
 
         ctx.clearRect(0, 0, cw, ch);
         drawClouds(deltaTime);
 
-        // อัปเดตนก
         bird.update(deltaTime);
         bird.draw();
 
-        // สร้างท่อ
         spawnTimer += deltaTime;
         if (spawnTimer >= SPAWN_INTERVAL) {
             createPipe();
             spawnTimer = 0;
         }
 
-        // คำนวณความเร็วท่อ (อิงตามความกว้างจอ ให้ข้ามจอใช้เวลา 4 วิ)
         const pipeSpeed = cw * 0.00025; 
 
         for (let i = pipes.length - 1; i >= 0; i--) {
             let p = pipes[i];
-            
             p.x -= pipeSpeed * deltaTime;
 
-            // สีและสไตล์ท่อ
             ctx.fillStyle = '#22C55E';
             ctx.strokeStyle = '#166534';
             ctx.lineWidth = 4;
 
-            // ท่อบน
             ctx.fillRect(p.x, 0, p.w, p.topGapY);
             ctx.strokeRect(p.x, -5, p.w, p.topGapY + 5);
             
-            // ท่อกลาง
             const middleStartY = p.topGapY + p.gapSize;
             const middleHeight = p.bottomGapY - middleStartY;
             ctx.fillRect(p.x, middleStartY, p.w, middleHeight);
             ctx.strokeRect(p.x, middleStartY, p.w, middleHeight);
             
-            // ท่อล่าง
             const bottomStartY = p.bottomGapY + p.gapSize;
             const bottomHeight = ch - bottomStartY;
             ctx.fillRect(p.x, bottomStartY, p.w, bottomHeight);
             ctx.strokeRect(p.x, bottomStartY, p.w, bottomHeight + 5);
 
-            // ป้ายตัวเลขบนท่อ
             ctx.fillStyle = '#FFFFFF';
-            // ปรับขนาดฟอนต์ให้ใหญ่พอเหมาะ
             const fontSize = Math.min(40, Math.max(24, cw * 0.05));
             ctx.font = `bold ${fontSize}px Mali`;
             ctx.textAlign = 'center';
@@ -395,28 +374,26 @@
 
             // เช็คการชน
             if (!p.hit && !p.scored) {
-                // เช็คแนวนอน
                 if (bird.x + bird.radius > p.x && bird.x - bird.radius < p.x + p.w) {
                     
                     let inTopGap = (bird.y > p.topGapY && bird.y < p.topGapY + p.gapSize);
                     let inBottomGap = (bird.y > p.bottomGapY && bird.y < p.bottomGapY + p.gapSize);
 
                     if (inTopGap || inBottomGap) {
-                        // บินผ่านกลางท่อ
                         if (bird.x > p.x + p.w/2) {
                             if ((inTopGap && p.correctIsTop) || (inBottomGap && !p.correctIsTop)) {
+                                // บินเข้าช่องถูก
                                 score += 100;
                                 p.scored = true;
                                 updateUI();
                             } else {
-                                hearts--;
-                                p.hit = true;
-                                updateUI();
-                                if (hearts <= 0) gameOver();
+                                // *** บินเข้าช่องผิด: ไม่หักคะแนน และ ไม่ลดหัวใจ ***
+                                p.hit = true; 
+                                // ปล่อยผ่านไปเฉยๆ ไม่เรียก updateUI() หรือลบ hearts
                             }
                         }
                     } else {
-                        // ชนตัวท่อ
+                        // ชนตัวท่อสีเขียว (เสียหัวใจ)
                         hearts--;
                         p.hit = true;
                         updateUI();
@@ -434,7 +411,6 @@
     document.getElementById('start-btn').addEventListener('click', initGame);
     document.getElementById('restart-btn').addEventListener('click', initGame);
 
-    // วาดฉากรอ
     initClouds();
     drawClouds(16);
 </script>
