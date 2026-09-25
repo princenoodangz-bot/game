@@ -808,6 +808,36 @@
         generateDecorations();
         animationId = requestAnimationFrame(gameLoop);
 
+        function checkPlayerItems() {
+    // 1. ดึงข้อมูลเด็กจาก LocalStorage 
+    const studentData = JSON.parse(localStorage.getItem('schoolquest_student'));
+    
+    // 2. ใช้ตัวแปร gameId ที่เกมมีให้อยู่แล้ว
+    const thisGameId = gameId; 
+
+    if (studentData && studentData.equipped_items) {
+        
+        // 3. วนลูปค้นตัวเด็กทีละชิ้น
+        studentData.equipped_items.forEach(item => {
+            
+            // เช็คก่อนว่าไอเทมชิ้นนี้ ใช้กับเกมนี้ได้ไหม? (หรือเป็นไอเทมครอบจักรวาล)
+            if (item.target_game === '' || item.target_game === thisGameId) {
+                
+                // 4. ออกฤทธิ์ตาม Effect (แก้ไขให้แก้ไขตัวแปรหลักของเกมโดยตรง)
+                if (item.effect === 'HP_50') {
+                    // ปรับจาก HP เป็นการเพิ่มหัวใจ 1 ดวง เพื่อให้เข้ากับระบบเกม
+                    lives += 1; 
+                    console.log(`✨ พลังไอเทมทำงาน: เพิ่ม 1 หัวใจ (ตอนนี้ lives=${lives})`);
+                } 
+                else if (item.effect === 'TIME_20') {
+                    timeLeft += 20;
+                    console.log(`✨ พลังไอเทมทำงาน: เพิ่มเวลา 20 วิ (ตอนนี้ Time=${timeLeft})`);
+                }
+                
+            }
+        });
+    }
+}
     </script>
 </body>
 </html>
