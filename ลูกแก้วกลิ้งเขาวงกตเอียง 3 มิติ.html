@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ลูกแก้วกลิ้งเขาวงกตเอียง 3 มิติ (วิทยาศาสตร์ ป.5)</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Mitr:wght@400;500;600&family=Sarabun:wght@400;600&display=swap" rel="stylesheet">
+    
+    <!-- Three.js (r128) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <!-- Supabase JS v2 -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
+            background-color: #0f172a; touch-action: none; user-select: none;
+        }
+        .font-mitr { font-family: 'Mitr', 'Sarabun', sans-serif; }
+        
+        #canvas3d {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1;
+        }
+        
+        .hud-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 20;
+        }
+        
+        /* Modals & Overlays */
+        .modal-overlay {
+            position: fixed; inset: 0; width: 100%; height: 100%; display: flex; 
+            align-items: center; justify-content: center; z-index: 50; 
+            background: rgba(15,23,42,0.6); backdrop-filter: blur(8px);
+            opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+        }
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+        .modal-card {
+            margin: auto; max-width: 24rem; width: 90%; background: #ffffff; 
+            border-radius: 1.5rem; padding: 1.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            transform: translateY(20px); transition: transform 0.3s ease;
+        }
+        .modal-overlay.active .modal-card { transform: translateY(0); }
+
+        /* Pop Animation */
+        @keyframes popBounce {
+            0% { transform: scale(0.7) translateX(-50%); opacity: 0; }
+            100% { transform: scale(1) translateX(-50%); opacity: 1; }
+        }
+        .pop-anim { 
+            animation: popBounce 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; 
+            transform-origin: center;
+        }
+
+        #feedbackPopup {
+            position: fixed; top: 4.5rem; left: 50%; z-index: 60;
+            display: none; transform: translateX(-50%);
+        }
+        
+        /* D-Pad controls */
+        .dpad-btn {
+            background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(4px);
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 1.5rem; color: white; pointer-events: auto;
+            transition: background 0.1s;
+        }
+        .dpad-btn:active { background: rgba(255, 255, 255, 0.5); }
+    </style>
+</head>
+<body class="font-mitr text-slate-800">
+
+    <!-- 3D Canvas -->
+    <canvas id="canvas3d"></canvas>
+
+    <!-- HUD Layer -->
+    <div class="hud-layer flex flex-col justify-between">
+        
+        <!-- Top Single-Line Slim Capsule -->
+        <div class="w-full flex justify-center pt-4 sm:pt-6 px-4">
+            <div class="bg-white/95 backdrop-blur-md shadow-lg rounded-full px-4 py-2 flex items-center gap-3 sm:gap-6 text-sm sm:text-base border border-slate-200">
+                <div class="font-semibold text-blue-600 flex items-center gap-1">
+                    🎯 <span id="hudLevel">1/6</span>
+                </div>
+                <div class="w-[1px] h-4 bg-slate-300"></div>
+                <div class="font-medium text-slate-700 max-w-[200px] sm:max-w-md truncate" id="hudQuestion">
+                    เตรียมพร้อม...
+                </div>
+                <div class="w-[1px] h-4 bg-slate-300"></div>
+                <div class="font-semibold text-amber-500 flex items-center gap-1">
+                    ⭐ <span id="hudScore">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls & Utility (Bottom) -->
+        <div class="p-6 flex justify-between items-end w-full">
+            <!-- D-Pad (Visible mainly on mobile/touch) -->
+            <div class="relative w-32 h-32 opacity-80 sm:opacity-50">
+                <div class="absolute top-0 left-1/2 -translate-x-1/2 w-10 h-10 dpad-btn" id="btnUp">▲</div>
+                <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-10 h-10 dpad-btn" id="btnDown">▼</div>
+                <div class="absolute top-1/2 left-0 -translate-y-1/2 w-10 h-10 dpad-btn" id="btnLeft">◀</div>
+                <div class="absolute top-1/2 right-0 -translate-y-1/2 w-10 h-10 dpad-btn" id="btnRight">▶</div>
+                <div class="absolute top-1/2 left-1/2 -translate-y-1/2 -translate-x-1/2 w-10 h-10 dpad-btn text-sm font-bold bg-white/30" id="btnCenter">●</div>
+            </div>
+            
+            <!-- Help Button -->
+            <button id="btnHelp" class="pointer-events-auto bg-white/90 shadow-lg w-12 h-12 rounded-full text-2xl font-bold text-blue-500 hover:scale-105 active:scale-95 transition-transform flex items-center justify-center">
+                ?
+            </button>
+        </div>
+    </div>
+
+    <!-- Feedback Popup -->
+    <div id="feedbackPopup" class="px-6 py-3 rounded-full shadow-2xl text-lg font-bold text-white tracking-wide border-2">
+        <!-- Content injected via JS -->
+    </div>
+
+    <!-- How To Play Modal -->
+    <div id="modalHowToPlay" class="modal-overlay active">
+        <div class="modal-card text-center">
+            <h2 class="text-2xl font-bold text-blue-600 mb-4">ลูกแก้วกลิ้งเขาวงกต ป.5</h2>
+            <div class="bg-blue-50 p-3 rounded-xl mb-4 text-sm text-slate-700 text-left">
+                <p class="mb-2"><strong>เป้าหมาย:</strong> กลิ้งลูกแก้วลงหลุมที่มีคำตอบตรงกับโจทย์ <strong>วิทยาศาสตร์ ป.5</strong> ให้ถูกต้อง!</p>
+                <ul class="list-disc pl-5 space-y-1">
+                    <li>💻 <strong>คอมพิวเตอร์:</strong> ใช้ปุ่มลูกศร หรือ W, A, S, D เพื่อเอียงกระดาน</li>
+                    <li>📱 <strong>มือถือ:</strong> กดปุ่มทิศทางบนหน้าจอ เพื่อควบคุมแรงโน้มถ่วง</li>
+                </ul>
+            </div>
+            
+            <!-- ตัวแปร Player Buffs จาก Supabase -->
+            <div id="playerBuffInfo" class="hidden bg-emerald-50 text-emerald-700 p-2 rounded-lg text-sm mb-4 border border-emerald-200">
+                <!-- ข้อมูลบัฟจะแสดงที่นี่ -->
+            </div>
+
+            <button id="btnStartGame" class="w-full bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-transform active:scale-95 text-lg">
+                เริ่มเล่นเลย! 🚀
+            </button>
+        </div>
+    </div>
+
+    <!-- Game Summary Modal -->
+    <div id="modalGameSummary" class="modal-overlay">
+        <div class="modal-card text-center relative overflow-hidden">
+            <!-- Confetti background effect -->
+            <div class="absolute inset-0 pointer-events-none opacity-20" style="background-image: radial-gradient(circle, #3b82f6 2px, transparent 2px); background-size: 20px 20px;"></div>
+            
+            <h2 class="text-3xl font-bold text-slate-800 mb-2 relative z-10" id="summaryTitle">ยอดเยี่ยม!</h2>
+            <p class="text-slate-600 mb-4 relative z-10">ตอบถูกทั้งหมด</p>
+            
+            <div class="flex justify-center gap-2 mb-6 relative z-10" id="starContainer">
+                <!-- Stars injected via JS -->
+            </div>
+            
+            <div class="bg-slate-50 rounded-xl p-4 mb-6 border border-slate-100 relative z-10">
+                <p class="text-4xl font-bold text-blue-600" id="finalScore">0 <span class="text-xl text-slate-500 font-medium">/ 6</span></p>
+            </div>
+
+            <div id="saveStatus" class="mb-4 text-sm font-medium text-slate-600">
+                กำลังบันทึกคะแนน...
+            </div>
+
+            <div class="flex flex-col gap-3 relative z-10">
+                <button id="btnBackToHub" class="hidden w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-transform active:scale-95 text-lg">
+                    🏠 กลับศูนย์รวมเกม
+                </button>
+                <button id="btnRestart" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-3 px-6 rounded-xl transition-transform active:scale-95">
+                    เล่นใหม่อีกครั้ง 🔄
+                </button>
+            </div>
+        </div>
+    </div>
+
+<script>
+    // ----------------------------------------------------
+    // [1] SUPABASE & PLAYER DATA INITIALIZATION
+    // ----------------------------------------------------
+    const SUPABASE_URL = 'https://gtcjixepijvcgvyfpqws.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0Y2ppeGVwaWp2Y2d2eWZwcXdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3MjU5NDYsImV4cCI6MjEwMTMwMTk0Nn0.FyEIl4r_LXhLeUxIzHusKzpnp7EdMvjADCdiLEMS-G8';
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let player = { id: null, xp: 0, coins: 0, xp_math: 0, level: 1, inventory: [] };
+    let gameStats = { maxHearts: 3, attackPower: 10 }; // Kept for compatibility with prompt script
+    let gameId = 'sci_p5_maze'; // Default game ID
+
+    window.addEventListener('DOMContentLoaded', async () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const studentId = urlParams.get('student_id');
+        const urlGameId = urlParams.get('game_id');
+        
+        if (urlGameId) gameId = urlGameId;
+
+        if (!studentId) {
+            console.warn("ไม่พบรหัสผู้เล่น (student_id) ใน URL - เล่นในโหมดทดลอง");
+            return;
+        }
+
+        try {
+            // โหลดข้อมูลคะแนนและไอเทม
+            const { data: studentData } = await supabaseClient.from('students').select('*').eq('id', studentId).single();
+            const { data: invData } = await supabaseClient.from('student_inventory').select('items(item_name)').eq('student_id', studentId);
+            
+            if (studentData) {
+                player.id = studentId;
+                player.xp = studentData.xp || 0;
+                player.coins = studentData.coins || 0;
+                player.xp_math = studentData.xp_math || 0; // Using xp_math as per requested script
+                player.level = Math.floor(player.xp / 500) + 1;
+                player.inventory = invData ? invData.map(i => i.items.item_name) : [];
+
+                applyGameBuffs();
+            }
+        } catch (error) {
+            console.error("โหลดข้อมูลผู้เล่นล้มเหลว:", error);
+        }
+    });
+
+    function applyGameBuffs() {
+        let buffMsg = `เลเวล ${player.level} | `;
+        if (player.level >= 2) {
+            gameStats.maxHearts += 1;
+            buffMsg += "❤️+1 ";
+        }
+        if (player.xp_math >= 1000) {
+            gameStats.attackPower += 5;
+            buffMsg += "⚔️+5 ";
+        }
+        if (player.inventory.includes("ยาเพิ่มพลัง")) {
+            gameStats.maxHearts += 2;
+            buffMsg += "🧪+2 ";
+        }
+        
+        const buffEl = document.getElementById('playerBuffInfo');
+        buffEl.textContent = `ข้อมูลนักเรียน: ${buffMsg}`;
+        buffEl.classList.remove('hidden');
+    }
+
+    // ----------------------------------------------------
+    // [2] GAME QUESTIONS DATA (Science P.5)
+    // ----------------------------------------------------
+    const GAME_QUESTIONS = [
+        {
+            q: "สถานะของสสารคืออะไร?", item: "🧊 น้ำแข็ง", answer: "solid",
+            choices: [
+                { id: "solid", text: "ของแข็ง", emoji: "🧊", color: "#059669" },
+                { id: "liquid", text: "ของเหลว", emoji: "💧", color: "#0284c7" },
+                { id: "gas", text: "แก๊ส", emoji: "☁️", color: "#db2777" }
+            ]
+        },
+        {
+            q: "สถานะของสสารคืออะไร?", item: "💨 ไอน้ำ", answer: "gas",
+            choices: [
+                { id: "solid", text: "ของแข็ง", emoji: "🧊", color: "#059669" },
+                { id: "liquid", text: "ของเหลว", emoji: "💧", color: "#0284c7" },
+                { id: "gas", text: "แก๊ส", emoji: "☁️", color: "#db2777" }
+            ]
+        },
+        {
+            q: "เสียงเดินทางผ่านตัวกลางใดได้ดีที่สุด?", item: "🔊 การเดินทางของเสียง", answer: "solid",
+            choices: [
+                { id: "solid", text: "ของแข็ง", emoji: "🧱", color: "#ea580c" },
+                { id: "liquid", text: "ของเหลว", emoji: "💧", color: "#0284c7" },
+                { id: "gas", text: "อากาศ", emoji: "☁️", color: "#10b981" }
+            ]
+        },
+        {
+            q: "พื้นผิวใดมีแรงเสียดทานมากที่สุด?", item: "🛹 แรงเสียดทาน", answer: "rough",
+            choices: [
+                { id: "smooth", text: "พื้นกระเบื้อง", emoji: "🧊", color: "#0284c7" },
+                { id: "rough", text: "พื้นทราย", emoji: "🏖️", color: "#ea580c" }
+            ]
+        },
+        {
+            q: "แหล่งน้ำใดมีปริมาณมากที่สุดบนโลก?", item: "🌍 แหล่งน้ำ", answer: "ocean",
+            choices: [
+                { id: "ocean", text: "มหาสมุทร", emoji: "🌊", color: "#0284c7" },
+                { id: "fresh", text: "แม่น้ำ (น้ำจืด)", emoji: "🚰", color: "#10b981" }
+            ]
+        },
+        {
+            q: "สิ่งใดบนท้องฟ้าคือ 'ดาวฤกษ์'?", item: "✨ อวกาศ", answer: "sun",
+            choices: [
+                { id: "sun", text: "ดวงอาทิตย์", emoji: "☀️", color: "#ea580c" },
+                { id: "moon", text: "ดวงจันทร์", emoji: "🌕", color: "#64748b" },
+                { id: "earth", text: "โลก", emoji: "🌍", color: "#0ea5e9" }
+            ]
+        }
+    ];
+
+    // Shuffle array utility
+    function shuffleArray(array) {
+        let curId = array.length;
+        while (0 !== curId) {
+            let randId = Math.floor(Math.random() * curId);
+            curId -= 1;
+            let tmp = array[curId];
+            array[curId] = array[randId];
+            array[randId] = tmp;
+        }
+        return array;
+    }
+
+    // ----------------------------------------------------
+    // [3] WEB AUDIO API (Synthesized SFX)
+    // ----------------------------------------------------
+    const sfx = {
+        ctx: null,
+        rollOsc: null,
+        rollGain: null,
+        init: function() {
+            if (this.ctx) return;
+            this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+            
+            // Setup persistent rolling sound
+            this.rollOsc = this.ctx.createOscillator();
+            this.rollOsc.type = 'triangle';
+            this.rollOsc.frequency.value = 60;
+            this.rollGain = this.ctx.createGain();
+            this.rollGain.gain.value = 0;
+            
+            this.rollOsc.connect(this.rollGain);
+            this.rollGain.connect(this.ctx.destination);
+            this.rollOsc.start();
+        },
+        playRoll: function(speed) {
+            if (!this.ctx) return;
+            // Map speed (0 to maxSpeed) to frequency (60 to 190) and gain (0 to 0.045)
+            const speedRatio = Math.min(speed / physics.maxSpeed, 1.0);
+            this.rollOsc.frequency.setTargetAtTime(60 + (130 * speedRatio), this.ctx.currentTime, 0.1);
+            this.rollGain.gain.setTargetAtTime(speedRatio * 0.045, this.ctx.currentTime, 0.1);
+        },
+        stopRoll: function() {
+            if (!this.ctx) return;
+            this.rollGain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.05);
+        },
+        playSuccess: function() {
+            if (!this.ctx) return;
+            const freqs = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+            freqs.forEach((freq, i) => {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.value = freq;
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                
+                const time = this.ctx.currentTime + (i * 0.075);
+                osc.start(time);
+                gain.gain.setValueAtTime(0, time);
+                gain.gain.linearRampToValueAtTime(0.15, time + 0.02);
+                gain.gain.exponentialRampToValueAtTime(0.001, time + 0.3);
+                osc.stop(time + 0.35);
+            });
+        },
+        playBounceWrong: function() {
+            if (!this.ctx) return;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'triangle';
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            
+            const time = this.ctx.currentTime;
+            osc.frequency.setValueAtTime(260, time);
+            osc.frequency.exponentialRampToValueAtTime(130, time + 0.22);
+            
+            osc.start(time);
+            gain.gain.setValueAtTime(0.2, time);
+            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.22);
+            osc.stop(time + 0.25);
+        }
+    };
+
+    // Unlock audio on first interaction
+    document.addEventListener('pointerdown', () => sfx.init(), { once: true });
+    document.addEventListener('keydown', () => sfx.init(), { once: true });
+
+    // ----------------------------------------------------
+    // [4] THREE.JS SETUP & LIGHTING
+    // ----------------------------------------------------
+    const canvas = document.getElementById('canvas3d');
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.0;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+    const scene = new THREE.Scene();
+    
+    // Environment Map Generator (Sky colors)
+    function createEnvMap() {
+        const envCanvas = document.createElement('canvas');
+        envCanvas.width = 512; envCanvas.height = 256;
+        const ctx = envCanvas.getContext('2d');
+        const gradient = ctx.createLinearGradient(0, 0, 0, 256);
+        gradient.addColorStop(0, '#38bdf8'); // Sky blue
+        gradient.addColorStop(0.5, '#f472b6'); // Pastel pink
+        gradient.addColorStop(1, '#fb923c'); // Orange
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, 512, 256);
+        
+        // Highlight (Sun/Light source reflection)
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.ellipse(256, 64, 40, 20, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        const envTexture = new THREE.CanvasTexture(envCanvas);
+        envTexture.mapping = THREE.EquirectangularReflectionMapping;
+        return envTexture;
+    }
+    scene.environment = createEnvMap();
+
+    // Lighting
+    const hemiLight = new THREE.HemisphereLight(0xfff5e6, 0x818cf8, 1.1);
+    scene.add(hemiLight);
+
+    const dirLightMain = new THREE.DirectionalLight(0xfff1dc, 1.25);
+    dirLightMain.position.set(7, 22, 12);
+    dirLightMain.castShadow = true;
+    dirLightMain.shadow.camera.left = -10; dirLightMain.shadow.camera.right = 10;
+    dirLightMain.shadow.camera.top = 15; dirLightMain.shadow.camera.bottom = -15;
+    dirLightMain.shadow.mapSize.width = 1024; dirLightMain.shadow.mapSize.height = 1024;
+    scene.add(dirLightMain);
+
+    const dirLightRim = new THREE.DirectionalLight(0xa5b4fc, 0.7);
+    dirLightRim.position.set(-8, 14, -14);
+    scene.add(dirLightRim);
+
+    // Camera (Top Safe Zone)
+    const camera = new THREE.PerspectiveCamera(36, window.innerWidth / window.innerHeight, 0.1, 100);
+    
+    function updateCamera() {
+        const aspect = window.innerWidth / window.innerHeight;
+        camera.aspect = aspect;
+        if (window.innerWidth < 640) {
+            // Mobile (Vertical)
+            camera.fov = 42;
+            camera.position.set(0, 22.0, 18.0);
+            camera.lookAt(0, -0.8, 1.2); // Look slightly lower to bring board down
+        } else {
+            // Desktop (Horizontal)
+            camera.fov = 36;
+            camera.position.set(0, 18.2, 16.5);
+            camera.lookAt(0, -0.5, 0.8);
+        }
+        camera.updateProjectionMatrix();
+    }
+    updateCamera();
+    window.addEventListener('resize', () => {
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        updateCamera();
+    });
+
+    // ----------------------------------------------------
+    // [5] TEXTURE GENERATORS
+    // ----------------------------------------------------
+    function createWoodTexture() {
+        const c = document.createElement('canvas');
+        c.width = 1024; c.height = 2048;
+        const ctx = c.getContext('2d');
+        
+        // Base wood color
+        const grad = ctx.createLinearGradient(0, 0, 0, 2048);
+        grad.addColorStop(0, '#fef3c7'); // Honey warm pastel
+        grad.addColorStop(1, '#fde68a');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 1024, 2048);
+        
+        // Wood grain lines
+        ctx.strokeStyle = 'rgba(245, 158, 11, 0.18)'; // Amber faint
+        ctx.lineWidth = 2;
+        for(let i=0; i<100; i++) {
+            ctx.beginPath();
+            let x = Math.random() * 1024;
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x + (Math.random()-0.5)*100, 2048);
+            ctx.stroke();
+        }
+
+        // Neon gold runway
+        const cx = 512;
+        const runwayGrad = ctx.createLinearGradient(cx-45, 0, cx+45, 0);
+        runwayGrad.addColorStop(0, 'rgba(251, 191, 36, 0)');
+        runwayGrad.addColorStop(0.2, '#f59e0b');
+        runwayGrad.addColorStop(0.5, '#ffffff'); // bright center
+        runwayGrad.addColorStop(0.8, '#f59e0b');
+        runwayGrad.addColorStop(1, 'rgba(251, 191, 36, 0)');
+        
+        ctx.fillStyle = runwayGrad;
+        // Map Threejs coordinates to Canvas coordinates.
+        // Board Z: -11 to 11. Runway Y: 0.28 to 0.93 in normalized space? 
+        // Let's draw it from bottom (2048) to near top.
+        const startY = 2048 * 0.95; 
+        const endY = 2048 * 0.25;
+        ctx.fillRect(cx - 45, endY, 90, startY - endY);
+
+        // Y branching (just simple shapes)
+        ctx.beginPath(); ctx.moveTo(cx, endY); ctx.lineTo(cx-200, endY-200);
+        ctx.lineWidth = 20; ctx.strokeStyle = runwayGrad; ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(cx, endY); ctx.lineTo(cx+200, endY-200);
+        ctx.stroke();
+
+        const tex = new THREE.CanvasTexture(c);
+        tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+        return tex;
+    }
+
+    function createMarbleTexture() {
+        const c = document.createElement('canvas');
+        c.width = 512; c.height = 512;
+        const ctx = c.getContext('2d');
+        
+        // Background gradient turquoise
+        const grad = ctx.createRadialGradient(256, 256, 0, 256, 256, 256);
+        grad.addColorStop(0, '#38bdf8');
+        grad.addColorStop(1, '#1e3a8a');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 512, 512);
+
+        // Candy ribbons
+        const colors = ['#f43f5e', '#fbbf24', '#a855f7', '#10b981', '#ffffff'];
+        ctx.lineWidth = 24;
+        colors.forEach((col, idx) => {
+            ctx.strokeStyle = col;
+            ctx.beginPath();
+            ctx.moveTo(0, idx * 80 + 50);
+            ctx.bezierCurveTo(200, idx*80 + 150, 300, idx*80 - 50, 512, idx*80 + 50);
+            ctx.stroke();
+        });
+
+        // Highlight
+        ctx.fillStyle = 'rgba(255,255,255,0.8)';
+        ctx.beginPath(); ctx.arc(150, 150, 40, 0, Math.PI*2); ctx.fill();
+
+        return new THREE.CanvasTexture(c);
+    }
+
+    function createDropShadowTexture() {
+        const c = document.createElement('canvas');
+        c.width = 256; c.height = 256;
+        const ctx = c.getContext('2d');
+        const grad = ctx.createRadialGradient(128, 128, 20, 128, 128, 128);
+        grad.addColorStop(0, 'rgba(0,0,0,0.8)');
+        grad.addColorStop(0.6, 'rgba(0,0,0,0.3)');
+        grad.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 256, 256);
+        return new THREE.CanvasTexture(c);
+    }
+
+    function createSignTexture(emoji, text, color) {
+        const c = document.createElement('canvas');
+        c.width = 384; c.height = 200;
+        const ctx = c.getContext('2d');
+        
+        // Background rounded rect
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.roundRect(14, 14, 356, 172, 24);
+        ctx.fill();
+        
+        // Border
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 14;
+        ctx.stroke();
+
+        // Emoji
+        ctx.font = '72px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(emoji, 192, 70);
+
+        // Text
+        ctx.font = 'bold 44px "Mitr", sans-serif';
+        ctx.fillStyle = '#1e293b';
+        ctx.fillText(text, 192, 145);
+
+        return new THREE.CanvasTexture(c);
+    }
+
+    // ----------------------------------------------------
+    // [6] BUILDING THE 3D OBJECTS
+    // ----------------------------------------------------
+    const boardPivot = new THREE.Group();
+    scene.add(boardPivot);
+
+    // Main Board
+    const boardW = 8.6, boardH = 0.75, boardD = 22.0;
+    const boardMat = new THREE.MeshStandardMaterial({ 
+        map: createWoodTexture(), roughness: 0.7, metalness: 0.1 
+    });
+    const boardMesh = new THREE.Mesh(new THREE.BoxGeometry(boardW, boardH, boardD), boardMat);
+    boardMesh.position.y = -0.375; // Top face is at y = 0
+    boardMesh.receiveShadow = true;
+    boardPivot.add(boardMesh);
+
+    // Walls (Strawberry pastel)
+    const wallThick = 0.48, wallHeight = 0.65;
+    const wallMat = new THREE.MeshLambertMaterial({ color: 0xfb7185 });
+    
+    const wallL = new THREE.Mesh(new THREE.BoxGeometry(wallThick, wallHeight, boardD), wallMat);
+    wallL.position.set(-boardW/2 + wallThick/2, wallHeight/2 - boardH/2, 0); // Relative to board center
+    boardPivot.add(wallL);
+    
+    const wallR = new THREE.Mesh(new THREE.BoxGeometry(wallThick, wallHeight, boardD), wallMat);
+    wallR.position.set(boardW/2 - wallThick/2, wallHeight/2 - boardH/2, 0);
+    boardPivot.add(wallR);
+    
+    const wallT = new THREE.Mesh(new THREE.BoxGeometry(boardW, wallHeight, wallThick), wallMat);
+    wallT.position.set(0, wallHeight/2 - boardH/2, -boardD/2 + wallThick/2);
+    boardPivot.add(wallT);
+    
+    const wallB = new THREE.Mesh(new THREE.BoxGeometry(boardW, wallHeight, wallThick), wallMat);
+    wallB.position.set(0, wallHeight/2 - boardH/2, boardD/2 - wallThick/2);
+    boardPivot.add(wallB);
+
+    // Holes Group (attached to pivot so they rotate with board)
+    const holesGroup = new THREE.Group();
+    boardPivot.add(holesGroup);
+
+    // Marble System
+    const marbleRadius = 0.78;
+    const marbleGroup = new THREE.Group(); // Parent for position
+    scene.add(marbleGroup); // Keep marble in world space conceptually, physics maps to board
+    
+    const marbleMat = new THREE.MeshPhysicalMaterial({
+        map: createMarbleTexture(),
+        roughness: 0.08, metalness: 0.15,
+        clearcoat: 1.0, clearcoatRoughness: 0.04, reflectivity: 0.95
+    });
+    const marbleMesh = new THREE.Mesh(new THREE.SphereGeometry(marbleRadius, 48, 48), marbleMat);
+    marbleMesh.position.y = marbleRadius;
+    marbleMesh.castShadow = true;
+    marbleGroup.add(marbleMesh);
+
+    // Reflection Ring
+    const ringGeo = new THREE.RingGeometry(marbleRadius + 0.1, marbleRadius + 0.3, 32);
+    const ringMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.45, side: THREE.DoubleSide });
+    const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+    ringMesh.rotation.x = -Math.PI / 2;
+    ringMesh.rotation.y = -Math.PI / 3;
+    marbleGroup.add(ringMesh);
+
+    // Drop shadow
+    const shadowMat = new THREE.MeshBasicMaterial({
+        map: createDropShadowTexture(), transparent: true, depthWrite: false, opacity: 0.8
+    });
+    const shadowMesh = new THREE.Mesh(new THREE.PlaneGeometry(2.18, 2.18), shadowMat);
+    shadowMesh.rotation.x = -Math.PI / 2;
+    shadowMesh.position.y = 0.02; // Just above board surface (y=0)
+    marbleGroup.add(shadowMesh);
+
+    // ----------------------------------------------------
+    // [7] PHYSICS & FINITE STATE MACHINE
+    // ----------------------------------------------------
+    const physics = {
+        maxTilt: 0.15, tiltDamp: 0.08, gravity: 0.018, friction: 0.962, maxSpeed: 0.22,
+        velX: 0, velZ: 0,
+        targetRotX: 0, targetRotZ: 0,
+        // Boundaries accounting for walls and marble radius
+        minX: -boardW/2 + wallThick + marbleRadius,
+        maxX:  boardW/2 - wallThick - marbleRadius,
+        minZ: -boardD/2 + wallThick + marbleRadius,
+        maxZ:  boardD/2 - wallThick - marbleRadius
+    };
+
+    const STATE = { IDLE: 0, PLAYING: 1, RESOLVING_CORRECT: 2, BOUNCING_WRONG: 3 };
+    let playState = STATE.IDLE;
+    
+    let currentHoles = [];
+    let currentQuestionIdx = 0;
+    let score = 0;
+    let bounceCooldown = 0;
+    let resolveAnimFrame = 0;
+
+    // Controls tracking
+    const keys = { w: false, a: false, s: false, d: false, up: false, left: false, down: false, right: false };
+    const dpads = { up: false, down: false, left: false, right: false };
+
+    window.addEventListener('keydown', e => {
+        if(e.code === 'KeyW' || e.code === 'ArrowUp') keys.up = true;
+        if(e.code === 'KeyS' || e.code === 'ArrowDown') keys.down = true;
+        if(e.code === 'KeyA' || e.code === 'ArrowLeft') keys.left = true;
+        if(e.code === 'KeyD' || e.code === 'ArrowRight') keys.right = true;
+    });
+    window.addEventListener('keyup', e => {
+        if(e.code === 'KeyW' || e.code === 'ArrowUp') keys.up = false;
+        if(e.code === 'KeyS' || e.code === 'ArrowDown') keys.down = false;
+        if(e.code === 'KeyA' || e.code === 'ArrowLeft') keys.left = false;
+        if(e.code === 'KeyD' || e.code === 'ArrowRight') keys.right = false;
+    });
+
+    // D-pad events
+    const bindBtn = (id, key) => {
+        const el = document.getElementById(id);
+        el.addEventListener('pointerdown', (e) => { e.preventDefault(); dpads[key] = true; sfx.init(); });
+        el.addEventListener('pointerup', (e) => { e.preventDefault(); dpads[key] = false; });
+        el.addEventListener('pointerleave', (e) => { e.preventDefault(); dpads[key] = false; });
+    };
+    bindBtn('btnUp', 'up'); bindBtn('btnDown', 'down'); bindBtn('btnLeft', 'left'); bindBtn('btnRight', 'right');
+    
+    document.getElementById('btnCenter').addEventListener('pointerdown', (e) => {
+        e.preventDefault(); sfx.init();
+        if(playState === STATE.PLAYING) resetMarblePosition();
+    });
+
+    function resetMarblePosition() {
+        marbleGroup.position.set(0, 0, boardD/2 - 3); // Start near bottom
+        physics.velX = 0; physics.velZ = 0;
+        marbleGroup.scale.set(1, 1, 1);
+        marbleMesh.position.y = marbleRadius;
+        shadowMesh.visible = true;
+        ringMesh.visible = true;
+    }
+
+    // ----------------------------------------------------
+    // [8] GAME LOGIC & LEVEL MANAGEMENT
+    // ----------------------------------------------------
+    
+    function loadLevel(index) {
+        if (index >= GAME_QUESTIONS.length) {
+            endGame();
+            return;
+        }
+        
+        const qData = GAME_QUESTIONS[index];
+        
+        // Update HUD
+        document.getElementById('hudLevel').innerText = `${index + 1}/${GAME_QUESTIONS.length}`;
+        document.getElementById('hudQuestion').innerText = `${qData.q} ${qData.item}`;
+        
+        // Clear old holes
+        while(holesGroup.children.length > 0) { 
+            holesGroup.remove(holesGroup.children[0]); 
+        }
+        currentHoles = [];
+
+        // Shuffle choices
+        const choices = shuffleArray([...qData.choices]);
+        const isThree = choices.length === 3;
+        const hZ = -boardD/2 + 3.8; // -7.2
+        
+        const positions = isThree ? [-2.7, 0, 2.7] : [-2.2, 2.2];
+
+        choices.forEach((choice, i) => {
+            const hX = positions[i];
+            const hColor = parseInt(choice.color.replace('#', '0x'));
+            
+            // Hole Group
+            const hGrp = new THREE.Group();
+            hGrp.position.set(hX, 0, hZ);
+            
+            // Mouth (Torus) - y=0.16
+            const torusGeo = new THREE.TorusGeometry(1.05, 0.28, 24, 48);
+            const torusMat = new THREE.MeshLambertMaterial({ color: hColor });
+            const torusMesh = new THREE.Mesh(torusGeo, torusMat);
+            torusMesh.rotation.x = Math.PI / 2;
+            torusMesh.position.y = 0.16;
+            hGrp.add(torusMesh);
+            
+            // Bottom (Dark) - y=0.03
+            const circleGeo = new THREE.CircleGeometry(0.98, 32);
+            // Deep blue-black
+            const circleMat = new THREE.MeshBasicMaterial({ color: 0x0f172a }); 
+            const circleMesh = new THREE.Mesh(circleGeo, circleMat);
+            circleMesh.rotation.x = -Math.PI / 2;
+            circleMesh.position.y = 0.03;
+            hGrp.add(circleMesh);
+
+            // Sign - Face camera slightly
+            const signMat = new THREE.MeshBasicMaterial({ 
+                map: createSignTexture(choice.emoji, choice.text, choice.color),
+                transparent: true
+            });
+            const signMesh = new THREE.Mesh(new THREE.PlaneGeometry(1.9, 0.95), signMat);
+            // Position above and slightly behind hole center
+            signMesh.position.set(0, 0.55, 1.8); 
+            signMesh.rotation.x = -0.36; // Tilt back
+            hGrp.add(signMesh);
+
+            holesGroup.add(hGrp);
+
+            currentHoles.push({
+                x: hX, z: hZ,
+                id: choice.id,
+                isCorrect: choice.id === qData.answer
+            });
+        });
+
+        resetMarblePosition();
+        playState = STATE.PLAYING;
+    }
+
+    function showFeedback(isCorrect) {
+        const fb = document.getElementById('feedbackPopup');
+        fb.style.display = 'block';
+        fb.classList.remove('pop-anim');
+        void fb.offsetWidth; // trigger reflow
+        
+        if (isCorrect) {
+            fb.innerHTML = "🎉 ถูกต้องแล้วจ้า! เก่งมาก ⭐";
+            fb.className = "px-6 py-3 rounded-full shadow-2xl text-lg font-bold text-white tracking-wide border-2 border-green-300 bg-gradient-to-r from-green-500 to-emerald-500 pop-anim";
+        } else {
+            fb.innerHTML = "💜 ลองใหม่นะ! กลิ้งอีกรอบได้เลย";
+            fb.className = "px-6 py-3 rounded-full shadow-2xl text-lg font-bold text-white tracking-wide border-2 border-rose-300 bg-gradient-to-r from-rose-500 to-pink-500 pop-anim";
+        }
+
+        if(isCorrect) {
+            setTimeout(() => {
+                fb.style.display = 'none';
+                currentQuestionIdx++;
+                loadLevel(currentQuestionIdx);
+            }, 1500);
+        } else {
+            setTimeout(() => { fb.style.display = 'none'; }, 1500);
+        }
+    }
+
+    // ----------------------------------------------------
+    // [9] MAIN ANIMATION LOOP
+    // ----------------------------------------------------
+    
+    function animate() {
+        requestAnimationFrame(animate);
+
+        // Calculate Target Rotation based on inputs
+        let isUp = keys.up || dpads.up;
+        let isDown = keys.down || dpads.down;
+        let isLeft = keys.left || dpads.left;
+        let isRight = keys.right || dpads.right;
+
+        physics.targetRotX = 0; physics.targetRotZ = 0;
+        
+        if(playState === STATE.PLAYING || playState === STATE.BOUNCING_WRONG) {
+            if (isLeft) physics.targetRotZ = physics.maxTilt;
+            if (isRight) physics.targetRotZ = -physics.maxTilt;
+            if (isUp) physics.targetRotX = -physics.maxTilt;
+            if (isDown) physics.targetRotX = physics.maxTilt;
+        }
+
+        // Lerp Board Rotation
+        boardPivot.rotation.x += (physics.targetRotX - boardPivot.rotation.x) * physics.tiltDamp;
+        boardPivot.rotation.z += (physics.targetRotZ - boardPivot.rotation.z) * physics.tiltDamp;
+
+        if (playState === STATE.PLAYING || playState === STATE.BOUNCING_WRONG) {
+            // Apply Gravity Acceleration
+            let accZ = boardPivot.rotation.x * physics.gravity * 2.2;
+            let accX = -boardPivot.rotation.z * physics.gravity * 2.2;
+            
+            physics.velX += accX;
+            physics.velZ += accZ;
+
+            // Apply Friction
+            physics.velX *= physics.friction;
+            physics.velZ *= physics.friction;
+
+            // Speed Limit
+            let speed = Math.hypot(physics.velX, physics.velZ);
+            if (speed > physics.maxSpeed) {
+                let ratio = physics.maxSpeed / speed;
+                physics.velX *= ratio; physics.velZ *= ratio;
+                speed = physics.maxSpeed;
+            }
+
+            sfx.playRoll(speed);
+
+            let nextX = marbleGroup.position.x + physics.velX;
+            let nextZ = marbleGroup.position.z + physics.velZ;
+
+            // Hole Interaction Logic
+            if (playState === STATE.PLAYING && bounceCooldown <= 0) {
+                for (let hole of currentHoles) {
+                    let dx = nextX - hole.x;
+                    let dz = nextZ - hole.z;
+                    let dist = Math.hypot(dx, dz);
+
+                    // Funnel effect
+                    if (dist < 2.1) {
+                        let pull = 0.022 * (1 - dist / 2.1);
+                        physics.velX -= (dx / dist) * pull;
+                        physics.velZ -= (dz / dist) * pull;
+                    }
+
+                    // Sink condition (Trigger resolve)
+                    if (dist < 1.05 * 0.8) {
+                        if (hole.isCorrect) {
+                            playState = STATE.RESOLVING_CORRECT;
+                            resolveAnimFrame = 0;
+                            score++;
+                            document.getElementById('hudScore').innerText = score;
+                            sfx.stopRoll();
+                            sfx.playSuccess();
+                            showFeedback(true);
+                            // Snap to hole center for animation
+                            nextX = hole.x; nextZ = hole.z;
+                        } else {
+                            playState = STATE.BOUNCING_WRONG;
+                            bounceCooldown = 45; // Frames
+                            sfx.playBounceWrong();
+                            showFeedback(false);
+                            // Bounce back down
+                            physics.velZ = 0.23; 
+                            physics.velX *= 0.5;
+                        }
+                        break;
+                    }
+                }
+            }
+
+            if (bounceCooldown > 0) bounceCooldown--;
+
+            // Wall Collisions
+            if (nextX < physics.minX) { nextX = physics.minX; physics.velX *= -0.3; }
+            if (nextX > physics.maxX) { nextX = physics.maxX; physics.velX *= -0.3; }
+            if (nextZ < physics.minZ) { nextZ = physics.minZ; physics.velZ *= -0.3; }
+            if (nextZ > physics.maxZ) { nextZ = physics.maxZ; physics.velZ *= -0.3; }
+
+            marbleGroup.position.x = nextX;
+            marbleGroup.position.z = nextZ;
+
+            // Visual Rotation of Marble
+            marbleMesh.rotation.z -= physics.velX / marbleRadius;
+            marbleMesh.rotation.x += physics.velZ / marbleRadius;
+        } 
+        else if (playState === STATE.RESOLVING_CORRECT) {
+            // Sinking Animation
+            if (resolveAnimFrame < 22) {
+                let scale = 1 - (resolveAnimFrame / 22);
+                marbleGroup.scale.set(scale, scale, scale);
+                // Sink into hole
+                marbleMesh.position.y = marbleRadius * scale - (resolveAnimFrame/22)*0.5;
+                shadowMesh.visible = false;
+                ringMesh.visible = false;
+                resolveAnimFrame++;
+            }
+        }
+        else {
+            sfx.stopRoll();
+        }
+
+        renderer.render(scene, camera);
+    }
+
+    requestAnimationFrame(animate);
+
+    // ----------------------------------------------------
+    // [10] SUPABASE SCORE SAVING & UI MODALS
+    // ----------------------------------------------------
+    
+    document.getElementById('btnStartGame').addEventListener('click', () => {
+        document.getElementById('modalHowToPlay').classList.remove('active');
+        sfx.init();
+        currentQuestionIdx = 0;
+        score = 0;
+        document.getElementById('hudScore').innerText = score;
+        loadLevel(currentQuestionIdx);
+    });
+
+    document.getElementById('btnHelp').addEventListener('click', () => {
+        document.getElementById('modalHowToPlay').classList.add('active');
+        playState = STATE.IDLE; // Pause logic
+    });
+
+    document.getElementById('btnRestart').addEventListener('click', () => {
+        document.getElementById('modalGameSummary').classList.remove('active');
+        currentQuestionIdx = 0;
+        score = 0;
+        document.getElementById('hudScore').innerText = score;
+        loadLevel(currentQuestionIdx);
+    });
+
+    // Modified to fulfill both the prompt requirement (save to `scores`) 
+    // and the code snippet logic (update `students` table).
+    async function gameOverAndSaveScore(finalScore) {
+        const modal = document.getElementById('modalGameSummary');
+        const statusEl = document.getElementById('saveStatus');
+        const btnHub = document.getElementById('btnBackToHub');
+        
+        // Show Modal setup
+        modal.classList.add('active');
+        document.getElementById('finalScore').innerHTML = `${finalScore} <span class="text-xl text-slate-500 font-medium">/ 6</span>`;
+        
+        let stars = finalScore >= 5 ? 3 : (finalScore >= 3 ? 2 : 1);
+        let starHtml = '';
+        for(let i=0; i<3; i++) {
+            starHtml += `<div class="text-4xl ${i < stars ? 'text-yellow-400 drop-shadow-md' : 'text-slate-200'}">⭐</div>`;
+        }
+        document.getElementById('starContainer').innerHTML = starHtml;
+
+        if (!player.id) {
+            statusEl.innerText = "โหมดทดลองเล่น: ไม่ได้บันทึกคะแนน";
+            btnHub.classList.remove('hidden');
+            return;
+        }
+
+        statusEl.innerText = "กำลังบันทึกคะแนน...";
+        statusEl.className = "mb-4 text-sm font-medium text-blue-600 animate-pulse";
+
+        try {
+            // 1. บันทึกลงตาราง scores ตามเงื่อนไขระบบบังคับ
+            const { error: scoreError } = await supabaseClient
+                .from('scores')
+                .insert([
+                    { student_id: player.id, game_id: gameId, score: finalScore }
+                ]);
+            
+            if (scoreError) throw scoreError;
+
+            // 2. อัปเดตข้อมูลรวมใน students ตามโค้ดที่แนบมา
+            const earnedCoins = finalScore * 5;
+            const earnedXP = finalScore * 10;
+            const earnedMathXP = finalScore * 15; // ใช้ตัวแปรตามโค้ดเดิม
+
+            const { error: updateError } = await supabaseClient
+                .from('students')
+                .update({ 
+                    coins: player.coins + earnedCoins, 
+                    xp: player.xp + earnedXP, 
+                    xp_math: player.xp_math + earnedMathXP 
+                })
+                .eq('id', player.id);
+
+            if (updateError) throw updateError;
+
+            // Success
+            statusEl.innerText = "✅ บันทึกคะแนนสำเร็จ!";
+            statusEl.className = "mb-4 text-sm font-bold text-emerald-600";
+            btnHub.classList.remove('hidden'); // แสดงปุ่มกลับศูนย์รวมเกม
+
+            // Update local player state
+            player.coins += earnedCoins;
+            player.xp += earnedXP;
+            player.xp_math += earnedMathXP;
+
+        } catch (error) {
+            console.error("Save Error:", error);
+            statusEl.innerText = "❌ บันทึกคะแนนไม่สำเร็จ กรุณาตรวจสอบอินเทอร์เน็ต";
+            statusEl.className = "mb-4 text-sm font-bold text-rose-600";
+            btnHub.classList.remove('hidden'); // Allow exit even on fail
+        }
+    }
+
+    function endGame() {
+        playState = STATE.IDLE;
+        sfx.stopRoll();
+        gameOverAndSaveScore(score);
+    }
+
+    document.getElementById('btnBackToHub').addEventListener('click', () => {
+        window.location.href = 'index.html';
+    });
+
+</script>
+</body>
+</html>
