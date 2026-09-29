@@ -96,6 +96,10 @@
                 <div class="font-semibold text-amber-500 flex items-center gap-1">
                     ⭐ <span id="hudScore">0</span>
                 </div>
+                <div class="w-[1px] h-4 bg-slate-300"></div>
+                <div class="font-semibold text-rose-500 flex items-center gap-1">
+                    ⏱️ <span id="hudTime">00:00</span>
+                </div>
             </div>
         </div>
 
@@ -152,7 +156,8 @@
             <div class="absolute inset-0 pointer-events-none opacity-20" style="background-image: radial-gradient(circle, #3b82f6 2px, transparent 2px); background-size: 20px 20px;"></div>
             
             <h2 class="text-3xl font-bold text-slate-800 mb-2 relative z-10" id="summaryTitle">ยอดเยี่ยม!</h2>
-            <p class="text-slate-600 mb-4 relative z-10">ตอบถูกทั้งหมด</p>
+            <p class="text-slate-600 mb-2 relative z-10">ตอบถูกทั้งหมด</p>
+            <p class="text-slate-500 text-sm font-medium mb-4 relative z-10" id="summaryTime">ใช้เวลาไป 00:00 นาที</p>
             
             <div class="flex justify-center gap-2 mb-6 relative z-10" id="starContainer">
                 <!-- Stars injected via JS -->
@@ -682,6 +687,83 @@
     let bounceCooldown = 0;
     let resolveAnimFrame = 0;
 
+    // ----------------------------------------------------
+    // [7.5] TIMER & DEVICE ORIENTATION (TILT)
+    // ----------------------------------------------------
+    let timeSeconds = 0;
+    let timerInterval = null;
+
+    function startTimer() {
+        if(timerInterval) clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+            // นับเวลาเฉพาะตอนที่เกมกำลังเล่นอยู่เท่านั้น (ตอนโหลดโจทย์หรือตอบถูกจะไม่นับ)
+            if(playState === STATE.PLAYING || playState === STATE.BOUNCING_WRONG) {
+                timeSeconds++;
+                const m = String(Math.floor(timeSeconds / 60)).padStart(2, '0');
+                const s = String(timeSeconds % 60).padStart(2, '0');
+                document.getElementById('hudTime').innerText = `${m}:${s}`;
+            }
+        }, 1000);
+    }
+    function stopTimer() { if(timerInterval) clearInterval(timerInterval); }
+    function resetTimer() {
+        timeSeconds = 0;
+        document.getElementById('hudTime').innerText = `00:00`;
+    }
+
+    const tilt = { active: false, x: 0, z: 0 };
+    let baseBeta = null;
+    let baseGamma = null;
+
+    function requestDeviceOrientation() {
+        if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+            // สำหรับ iOS 13+ ต้องขออนุญาตผู้ใช้ก่อน
+            DeviceOrientationEvent.requestPermission()
+                .then(permissionState => {
+                    if (permissionState === 'granted') {
+                        window.addEventListener('deviceorientation', handleOrientation);
+                    }
+                })
+                .catch(console.error);
+        } else {
+            // สำหรับ Android และอุปกรณ์อื่นๆ
+            window.addEventListener('deviceorientation', handleOrientation);
+        }
+    }
+
+    function handleOrientation(event) {
+        if (event.beta === null || event.gamma === null) return;
+        tilt.active = true;
+
+        // บันทึกองศาแรกสุดที่เข้าเกมเป็น "จุดสมดุล" (Calibration)
+        if (baseBeta === null) {
+            baseBeta = event.beta;
+            baseGamma = event.gamma;
+        }
+
+        let diffBeta = event.beta - baseBeta;
+        let diffGamma = event.gamma - baseGamma;
+
+        // ป้องกันมุมกระโดดข้ามแกน (Wrap-around)
+        if (diffBeta > 180) diffBeta -= 360;
+        if (diffBeta < -180) diffBeta += 360;
+        if (diffGamma > 90) diffGamma -= 180;
+        if (diffGamma < -90) diffGamma += 180;
+
+        const maxTiltAngle = 20; // หากเอียงเกิน 20 องศา จะถือเป็นความเร็วสูงสุด
+        
+        diffBeta = Math.max(-maxTiltAngle, Math.min(maxTiltAngle, diffBeta));
+        diffGamma = Math.max(-maxTiltAngle, Math.min(maxTiltAngle, diffGamma));
+
+        tilt.x = (diffBeta / maxTiltAngle) * physics.maxTilt;
+        tilt.z = -(diffGamma / maxTiltAngle) * physics.maxTilt; 
+    }
+
+    function resetTiltCalibration() {
+        baseBeta = null;
+        baseGamma = null;
+    }
+
     // Controls tracking
     const keys = { w: false, a: false, s: false, d: false, up: false, left: false, down: false, right: false };
     const dpads = { up: false, down: false, left: false, right: false };
@@ -841,6 +923,12 @@
         physics.targetRotX = 0; physics.targetRotZ = 0;
         
         if(playState === STATE.PLAYING || playState === STATE.BOUNCING_WRONG) {
+            // ใช้ค่าจากการเอียงมือถือ (ถ้ามี)
+            if (tilt.active) {
+                physics.targetRotX = tilt.x;
+                physics.targetRotZ = tilt.z;
+            }
+            // ปุ่่มกด D-Pad / Keyboard จะเขียนทับการเอียงมือถือ
             if (isLeft) physics.targetRotZ = physics.maxTilt;
             if (isRight) physics.targetRotZ = -physics.maxTilt;
             if (isUp) physics.targetRotX = -physics.maxTilt;
@@ -959,9 +1047,13 @@
     document.getElementById('btnStartGame').addEventListener('click', () => {
         document.getElementById('modalHowToPlay').classList.remove('active');
         sfx.init();
+        requestDeviceOrientation(); // ขออนุญาตการใช้เซ็นเซอร์
+        resetTiltCalibration(); // รีเซ็ตจุดศูนย์ถ่วงให้ตรงกับที่ผู้เล่นถืออยู่
         currentQuestionIdx = 0;
         score = 0;
         document.getElementById('hudScore').innerText = score;
+        resetTimer();
+        startTimer();
         loadLevel(currentQuestionIdx);
     });
 
@@ -972,9 +1064,12 @@
 
     document.getElementById('btnRestart').addEventListener('click', () => {
         document.getElementById('modalGameSummary').classList.remove('active');
+        resetTiltCalibration(); // รีเซ็ตจุดศูนย์ถ่วงใหม่ตอนเริ่มรอบใหม่
         currentQuestionIdx = 0;
         score = 0;
         document.getElementById('hudScore').innerText = score;
+        resetTimer();
+        startTimer();
         loadLevel(currentQuestionIdx);
     });
 
@@ -988,6 +1083,10 @@
         // Show Modal setup
         modal.classList.add('active');
         document.getElementById('finalScore').innerHTML = `${finalScore} <span class="text-xl text-slate-500 font-medium">/ 6</span>`;
+        
+        const m = String(Math.floor(timeSeconds / 60)).padStart(2, '0');
+        const s = String(timeSeconds % 60).padStart(2, '0');
+        document.getElementById('summaryTime').innerText = `ใช้เวลาไป ${m}:${s} นาที`;
         
         let stars = finalScore >= 5 ? 3 : (finalScore >= 3 ? 2 : 1);
         let starHtml = '';
@@ -1052,6 +1151,7 @@
     function endGame() {
         playState = STATE.IDLE;
         sfx.stopRoll();
+        stopTimer();
         gameOverAndSaveScore(score);
     }
 
