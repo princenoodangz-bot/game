@@ -146,10 +146,26 @@
                         <div class="w-8 h-8 rounded-full bg-sky-50 text-sky-500 flex items-center justify-center shrink-0"><i class="fa-solid fa-bag-shopping"></i></div>
                         <div><p class="text-xs font-bold text-slate-700 leading-tight">+ เพิ่มของในร้าน</p><p class="text-[9px] text-slate-400">ไอเทม & อุปกรณ์</p></div>
                     </button>
-                    <button class="bg-white rounded-xl p-3 flex items-center gap-2.5 shadow-sm border border-slate-100 hover:border-indigo-200 transition-colors text-left col-span-2">
-                        <div class="w-8 h-8 rounded-full bg-indigo-50 text-indigo-500 flex items-center justify-center shrink-0"><i class="fa-solid fa-shirt"></i></div>
-                        <div><p class="text-xs font-bold text-slate-700 leading-tight">+ สกิน & ตัวละคร</p><p class="text-[9px] text-slate-400">อวตารรางวัลพิเศษ</p></div>
+                    <!-- ปุ่ม สกิน & ตัวละคร -->
+                    <button onclick="openSkinSettings()" class="bg-white border border-slate-100 rounded-2xl p-4 flex items-center gap-4 shadow-sm hover:shadow-md transition text-left active:scale-95 col-span-2 sm:col-span-1">
+                    <div class="w-12 h-12 rounded-full bg-indigo-50 text-indigo-500 flex items-center justify-center text-xl shrink-0">
+                        <i class="fa-solid fa-shirt"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-sm">+ สกิน & ตัวละคร</h3>
+                        <p class="text-[10px] text-slate-500 mt-0.5">อวตารรางวัลพิเศษ</p>
+                    </div>
                     </button>
+                    <!-- ปุ่มตั้งค่ารางวัลล็อกอิน 7 วัน -->
+                     <button onclick="openLoginRewardSettings()" class="bg-white border border-slate-100 rounded-2xl p-4 flex items-center gap-4 shadow-sm hover:shadow-md transition text-left active:scale-95">
+                    <div class="w-12 h-12 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center text-xl shrink-0">
+                        <i class="fa-solid fa-calendar-check"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-sm">ตั้งค่าล็อกอิน 7 วัน</h3>
+                        <p class="text-[10px] text-slate-500 mt-0.5">จัดการรางวัลเช็คอินรายวัน</p>
+                    </div>
+                </button>
                 </div>
             </div>
         </section>
@@ -236,6 +252,10 @@
                 <button onclick="openModal('modal-manage-quests')" class="bg-white text-slate-600 border border-slate-200 px-4 py-1.5 rounded-full text-xs font-medium whitespace-nowrap flex items-center gap-1.5 hover:bg-slate-50">
                     <i class="fa-solid fa-clipboard-list"></i> ภารกิจ
                 </button>
+                <!-- ปุ่มตั้งค่าของรางวัล -->
+                <button onclick="openManageRewards()" class="bg-white border-2 border-slate-100 hover:border-pink-300 hover:bg-pink-50 text-slate-600 hover:text-pink-600 px-4 py-2 rounded-full text-sm font-bold flex items-center gap-2 shadow-sm transition">
+                   <span>🎁</span> ของรางวัล
+                </button>
             </div>
 
             <div class="flex justify-between items-end mb-3 px-1 mt-4">
@@ -302,6 +322,7 @@
                 <i class="fa-solid fa-store text-xl"></i>
                 <span class="text-[9px] font-medium">ร้านค้า</span>
             </button>
+              
         </div>
     </nav>
 </div>
@@ -337,6 +358,42 @@
                     <label class="block text-xs font-bold text-slate-700 mb-1">URL เกม <span class="text-red-500">*</span></label>
                     <input type="text" id="game-url" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-admin-blue outline-none text-sm font-medium">
                 </div>
+                                <div class="mb-4">
+                    <label class="block text-sm font-bold text-slate-700 mb-2">หมวดหมู่เกม</label>
+                    <select id="game-category" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-blue-500">
+                        <option value="ทั่วไป">ทั่วไป 🎮</option>
+                        <option value="คณิตศาสตร์">คณิตศาสตร์ 📐</option>
+                        <option value="ภาษาไทย">ภาษาไทย 📖</option>
+                        <option value="วิทยาศาสตร์">วิทยาศาสตร์ 🧪</option>
+                        <option value="ภาษาอังกฤษ">ภาษาอังกฤษ 🔠</option>
+                        <option value="บอร์ดเกม">บอร์ดเกม 🎲</option>
+                    </select>
+                </div>
+
+                <!-- 🟢 เพิ่มส่วนตั้งค่าของรางวัล 🟢 -->
+                <div class="mb-4 p-4 bg-blue-50/50 border border-blue-100 rounded-xl">
+                 <label class="block font-bold text-slate-700 mb-3"><i class="fa-solid fa-gift text-blue-500 mr-1"></i> ตั้งค่ารางวัล (XP, เหรียญ, ไอเทม)</label>
+    
+                 <div class="grid grid-cols-2 gap-3 mb-3">
+                     <!-- 1. ตัวคูณ XP -->
+                  <div>
+                   <label class="block text-xs font-semibold text-slate-600 mb-1">ตัวคูณ XP (ปกติ 1)</label>
+                   <input type="number" step="0.1" id="game-xp-multiplier" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500" placeholder="เช่น 1 หรือ 2" value="1">
+                 </div>
+
+                  <!-- 2. อัตราแจกเหรียญ -->
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">หารคะแนนเป็นเหรียญ</label>
+                   <input type="number" id="game-coin-divisor" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500" placeholder="เช่น 10 (0=ไม่แจก)" value="10">
+                 </div>
+                </div>
+
+             <!-- 3. แจกไอเทม -->
+             <div>
+                 <label class="block text-xs font-semibold text-slate-600 mb-1">ไอเทมดรอปพิเศษ (เว้นว่างได้)</label>
+                    <input type="text" id="game-special-item" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500" placeholder="ระบุชื่อไอเทม เช่น ยาเพิ่มเลือด, กล่องสุ่ม">
+                  </div>
+                </div>
                 <div class="flex items-center gap-2 bg-emerald-50 p-3 rounded-xl border border-emerald-100 mt-2">
                     <input type="checkbox" id="game-active" checked class="w-4 h-4 text-emerald-500 border-slate-300 rounded focus:ring-emerald-500">
                     <label for="game-active" class="text-xs font-bold text-emerald-700 cursor-pointer">เปิดให้นักเรียนเข้าเล่นได้ทันที</label>
@@ -351,7 +408,7 @@
     </div>
 
     <!-- 2. Modal: จัดการคลังเกมทั้งหมด -->
-    <div id="modal-manage-games" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] hidden flex items-end sm:items-center justify-center transition-opacity">
+    <div id="modal-manage-games" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[999] hidden flex items-end sm:items-center justify-center transition-opacity">
         <div class="bg-white w-full max-w-[430px] rounded-t-3xl sm:rounded-3xl shadow-2xl transform translate-y-full sm:translate-y-0 transition-transform duration-300 h-[90vh] sm:h-[80vh] flex flex-col">
             <div class="flex justify-between items-center p-5 border-b border-slate-100 shrink-0">
                 <div class="flex items-center gap-3">
@@ -390,9 +447,15 @@
                         <p class="text-[10px] text-slate-500">เพิ่ม, แก้ไข และอัปโหลดไฟล์ Excel</p>
                     </div>
                 </div>
-                <button onclick="closeModal('modal-manage-students')" class="w-8 h-8 bg-slate-100 text-slate-500 rounded-full flex items-center justify-center">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
+                <!-- กลุ่มปุ่มฝั่งขวา (ส่งออก Excel + ปิด) -->
+                <div class="flex items-center gap-2">
+                    <button onclick="exportStudentsToCSV()" class="bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-500 hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+                        <i class="fa-solid fa-file-excel"></i> ส่งออก
+                    </button>
+                    <button onclick="closeModal('modal-manage-students')" class="w-8 h-8 bg-slate-100 text-slate-500 rounded-full flex items-center justify-center hover:bg-slate-200 transition">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
             </div>
             <div class="p-5 flex-1 overflow-y-auto space-y-6 bg-slate-50">
                 <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
@@ -473,6 +536,17 @@
                         <option value="">-- ไม่ผูกกับเกม (ภารกิจทั่วไป) --</option>
                     </select>
                 </div>
+                <!-- 🌟 เพิ่ม 2 ช่องนี้สำหรับการนับถอยหลังและจำนวนคน -->
+                <div class="grid grid-cols-2 gap-3 mt-2 mb-2">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">วันสิ้นสุดภารกิจ</label>
+                        <input type="datetime-local" id="quest-end-date" class="w-full px-4 py-2.5 border rounded-xl text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">จำนวนคนเข้าร่วม</label>
+                        <input type="number" id="quest-participants" value="0" min="0" class="w-full px-4 py-2.5 border rounded-xl text-sm text-center">
+                    </div>
+                </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-xs font-bold text-slate-700 mb-1">รางวัล: เหรียญทอง (🪙)</label>
@@ -527,7 +601,7 @@
 
     <!-- 6. Modal: เพิ่มไอเทมในร้านค้า -->
     <div id="modal-add-item" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] hidden flex items-end sm:items-center justify-center transition-opacity">
-        <div class="bg-white w-full max-w-[430px] rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl transform translate-y-full sm:translate-y-0 transition-transform duration-300 h-[85vh] sm:h-auto overflow-y-auto" id="modal-item-content">
+        <div class="bg-white w-full max-w-[430px] rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl transform translate-y-full sm:translate-y-0 transition-transform duration-300 h-[85vh] sm:h-auto overflow-y-auto" id="modal-add-item-content">            
             <div class="flex justify-between items-center mb-6">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 bg-sky-100 text-sky-500 rounded-xl flex items-center justify-center text-lg"><i class="fa-solid fa-bag-shopping"></i></div>
@@ -544,8 +618,11 @@
                 <input type="hidden" id="edit-item-id">
                 <div class="flex gap-3">
                     <div class="w-1/3">
-                        <label class="block text-xs font-bold text-slate-700 mb-1">ไอคอน <span class="text-red-500">*</span></label>
-                        <input type="text" id="item-icon" required class="w-full px-4 py-2.5 border rounded-xl text-sm text-center">
+                        <label class="block text-xs font-bold text-slate-700 mb-1">ไอคอน / รูปภาพ <span class="text-red-500">*</span></label>
+                        <!-- ช่องใส่อีโมจิ (เอาคำว่า required ออก เพื่อให้เด็กสลับไปอัปโหลดรูปแทนได้) -->
+                        <input type="text" id="item-icon" placeholder="อีโมจิ/ลิงก์" class="w-full px-2 py-1.5 border rounded-lg text-sm text-center mb-1">
+                        <!-- ช่องอัปโหลดไฟล์รูปภาพที่เพิ่มเข้ามาใหม่ -->
+                        <input type="file" id="item-image-file" accept="image/*" class="w-full text-[9px] text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-[9px] file:bg-sky-50 file:text-sky-700 hover:file:bg-sky-100">
                     </div>
                     <div class="w-2/3">
                         <label class="block text-xs font-bold text-slate-700 mb-1">ชื่อไอเทม <span class="text-red-500">*</span></label>
@@ -566,16 +643,56 @@
                         <label class="block text-xs font-bold text-slate-700 mb-1">รายละเอียด</label>
                         <input type="text" id="item-desc" class="w-full px-4 py-2.5 border rounded-xl text-xs">
                     </div>
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 mb-1">ราคา (เหรียญทอง 🪙)</label>
-                        <input type="number" id="item-price-coins" value="500" min="0" class="w-full px-4 py-2.5 border rounded-xl text-sm text-center font-bold text-amber-600">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 mb-1">ราคา (เพชร 💎)</label>
-                        <input type="number" id="item-price-diamonds" value="0" min="0" class="w-full px-4 py-2.5 border rounded-xl text-sm text-center font-bold text-cyan-600">
-                    </div>
+                </div> <!-- ปิด div ของ หมวดหมู่ กับ รายละเอียด -->
+
+                <!-- 🌟 เพิ่มต่อจากช่อง หมวดหมู่เกม 🌟 -->
+<div class="mt-4 mb-4 p-4 border border-emerald-200 bg-emerald-50 rounded-xl">
+    <h4 class="text-sm font-bold text-emerald-800 mb-3 flex items-center gap-2">
+        <i class="fa-solid fa-gift"></i> ตั้งค่ารางวัล (เมื่อเล่นจบ)
+    </h4>
+    <div class="grid grid-cols-2 gap-3">
+        <div>
+            <label class="block text-[10px] text-slate-600 font-bold mb-1">ตัวคูณ XP (⭐)</label>
+            <input type="number" id="game-reward-xp" value="1" placeholder="ค่าเริ่มต้นคือ 1" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-emerald-500">
+            <p class="text-[9px] text-slate-400 mt-1">เช่น ตั้ง 2 = ได้ XP สองเท่า</p>
+        </div>
+        <div>
+            <label class="block text-[10px] text-slate-600 font-bold mb-1">ความยากเหรียญ (🪙)</label>
+            <input type="number" id="game-reward-coin" value="10" placeholder="ค่าเริ่มต้นคือ 10" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-emerald-500">
+            <p class="text-[9px] text-slate-400 mt-1">คะแนนหารด้วยเลขนี้ (ยิ่งน้อยยิ่งได้เยอะ)</p>
+        </div>
+    </div>
+    <div class="mt-3">
+        <label class="block text-[10px] text-slate-600 font-bold mb-1">โอกาสดรอปไอเทมพิเศษ (ID)</label>
+        <input type="text" id="game-special-drop" placeholder="เว้นว่างไว้ถ้าไม่มีการดรอปไอเทม" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-emerald-500">
+    </div>
+</div>
+        
+        <!-- 🟢 แทรก 2 ช่องใหม่ตรงนี้ครับ (ความสามารถพิเศษ & เลือกเกม) -->
+        <div class="grid grid-cols-2 gap-3">
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">ความสามารถพิเศษ (Effect) <span class="text-[9px] font-normal text-slate-400">เช่น HP_50</span></label>
+                <input type="text" id="item-effect" class="w-full px-4 py-2.5 border rounded-xl text-sm" placeholder="ปล่อยว่างได้">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">เลือกเกมเป้าหมาย</label>
+                <select id="item-target-game" class="w-full px-4 py-2.5 border rounded-xl text-sm font-medium">
+                    <option value="">🌟 มีผลกับทุกเกม</option>
+                    <!-- ตัวเลือกเกมจะถูกดึงมาใส่ตรงนี้อัตโนมัติด้วย JS -->
+                </select>
+            </div>
+
+        <!-- กล่องราคา (ของเดิมของคุณครู แค่เลื่อนลงมา) -->
+        <div class="grid grid-cols-2 gap-3 mt-3"> <!-- เติม mt-3 ให้เว้นช่องไฟหน่อยครับ -->
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">ราคา (เหรียญทอง 🪙)</label>
+                <input type="number" id="item-price-coins" value="500" min="0" class="w-full px-4 py-2.5 border rounded-xl text-sm font-bold text-amber-600">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">ราคา (เพชร 💎)</label>
+                <input type="number" id="item-price-diamonds" value="0" min="0" class="w-full px-4 py-2.5 border rounded-xl text-sm font-bold text-cyan-600">
+            </div>
+        </div>
                 </div>
                 <div class="flex items-center gap-2 bg-emerald-50 p-3 rounded-xl border border-emerald-100 mt-2">
                     <input type="checkbox" id="item-active" checked class="w-4 h-4 text-emerald-500 border-slate-300 rounded">
@@ -606,8 +723,8 @@
                 </button>
             </div>
             <div class="p-5 flex-1 overflow-y-auto space-y-4 bg-slate-50">
-                <button onclick="openModal('modal-add-item')" class="w-full bg-sky-500 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-plus"></i> เพิ่มของชิ้นใหม่
+                <button onclick="closeModal('modal-manage-items'); setTimeout(() => openModal('modal-add-item'), 300);" class="...คลาสสีฟ้าเดิมของคุณครู...">
+                    + เพิ่มของชิ้นใหม่
                 </button>
                 <input type="text" id="search-item" placeholder="ค้นหาชื่อไอเทม..." onkeyup="filterManageItems()" class="w-full px-3 py-2 border rounded-lg text-xs">
                 <div class="bg-white border rounded-xl overflow-hidden shadow-sm">
@@ -692,6 +809,145 @@
         </div>
     </div>
 
+        <!-- ================= Modal จัดการของรางวัล ================= -->
+<div id="modal-manage-rewards" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 transition-opacity">
+    <div class="bg-slate-50 w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        <div class="bg-gradient-to-r from-pink-500 to-rose-600 p-4 flex justify-between items-center text-white shrink-0">
+            <h2 class="text-lg font-bold flex items-center gap-2">🎁 จัดการของรางวัล</h2>
+            <button onclick="closeModal('modal-manage-rewards')" class="w-8 h-8 bg-white/20 hover:bg-white/40 rounded-full flex items-center justify-center transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        
+        <div class="p-4 flex gap-2 bg-white border-b shrink-0">
+            <button id="tab-daily-reward" onclick="switchRewardTab('daily')" class="flex-1 py-2 rounded-xl bg-pink-100 text-pink-600 font-bold text-sm transition">📅 ล็อกอิน 7 วัน</button>
+            <button id="tab-level-reward" onclick="switchRewardTab('level')" class="flex-1 py-2 rounded-xl bg-slate-100 text-slate-500 font-bold text-sm transition">🌟 รางวัลอัปเลเวล</button>
+        </div>
+
+        <!-- รายการล็อกอิน -->
+        <div id="content-daily-reward" class="p-4 overflow-y-auto flex-1 space-y-2"></div>
+        <!-- รายการเลเวล -->
+        <div id="content-level-reward" class="p-4 overflow-y-auto flex-1 space-y-2 hidden"></div>
+    </div>
+</div>
+
+<!-- ================= Modal แก้ไขของรางวัล ================= -->
+<div id="modal-edit-reward" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[60] hidden flex items-center justify-center p-4 transition-opacity">
+    <div class="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-6 relative">
+        <h3 id="edit-reward-title" class="text-lg font-bold text-slate-800 mb-4 text-center">แก้ไขรางวัล</h3>
+        
+        <div class="space-y-4">
+            <div>
+                <label class="block text-xs font-bold text-slate-500 mb-1">ประเภทของรางวัล</label>
+                <select id="edit-reward-type" onchange="toggleRewardInputType()" class="w-full border-2 border-slate-200 rounded-xl px-3 py-2 text-sm focus:border-pink-500 outline-none">
+                    <option value="coins">🪙 เหรียญทอง</option>
+                    <option value="diamonds">💎 เพชร</option>
+                    <option value="item">🔮 ไอเทมช่วยเหลือ</option>
+                    <option value="avatar">✨ สกินตัวละคร</option>
+                    <option value="pet">🐾 สัตว์เลี้ยง</option>
+                </select>
+            </div>
+
+            <!-- กล่องกรอกตัวเลข (สำหรับเงิน/เพชร) -->
+            <div id="box-reward-number">
+                <label class="block text-xs font-bold text-slate-500 mb-1">จำนวนที่แจก</label>
+                <input type="number" id="edit-reward-number" class="w-full border-2 border-slate-200 rounded-xl px-3 py-2 text-sm focus:border-pink-500 outline-none" value="100">
+            </div>
+
+            <!-- กล่องเลือกไอเทม (สำหรับของ) -->
+            <div id="box-reward-item" class="hidden">
+                <label class="block text-xs font-bold text-slate-500 mb-1">เลือกสิ่งของที่จะแจก</label>
+                <select id="edit-reward-item-id" class="w-full border-2 border-slate-200 rounded-xl px-3 py-2 text-sm focus:border-pink-500 outline-none">
+                    <!-- ดึงมาจากฐานข้อมูล -->
+                </select>
+            </div>
+        </div>
+
+        <div class="mt-6 flex gap-2">
+            <button onclick="closeModal('modal-edit-reward'); openModal('modal-manage-rewards');" class="flex-1 py-2 rounded-xl bg-slate-100 text-slate-600 font-bold hover:bg-slate-200 transition">ยกเลิก</button>
+            <button onclick="saveRewardConfig()" class="flex-1 py-2 rounded-xl bg-pink-500 text-white font-bold hover:bg-pink-600 transition shadow-md">💾 บันทึก</button>
+        </div>
+    </div>
+</div>
+<!-- Modal ตั้งค่ารางวัลล็อกอิน 7 วัน -->
+<div id="modal-login-rewards" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] hidden flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        
+        <!-- ส่วนหัว -->
+        <div class="bg-emerald-500 p-5 flex justify-between items-center shrink-0">
+            <div class="text-white">
+                <h2 class="text-lg font-bold flex items-center gap-2"><i class="fa-solid fa-calendar-check"></i> ตั้งค่ารางวัลล็อกอิน</h2>
+                <p class="text-xs text-emerald-100 mt-0.5">กำหนด XP และเหรียญสำหรับเช็คอิน 7 วัน</p>
+            </div>
+            <button onclick="document.getElementById('modal-login-rewards').classList.add('hidden')" class="w-8 h-8 bg-white/20 hover:bg-white/30 text-white rounded-full flex items-center justify-center transition">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <!-- รายการ 7 วัน -->
+        <div class="p-5 overflow-y-auto space-y-3 bg-slate-50 flex-1">
+            <p class="text-xs text-slate-500 mb-2 text-center">ตัวเลขที่ตั้งไว้จะถูกนำไปแจกนักเรียนอัตโนมัติ</p>
+            
+            <!-- ใช้ JavaScript วนลูปสร้างช่องกรอก 7 วัน จะได้โค้ดไม่ยาวเกินไปครับ -->
+            <div id="login-reward-list" class="space-y-3">
+                <!-- ข้อมูลจะถูกสร้างตรงนี้ -->
+            </div>
+        </div>
+
+        <!-- ปุ่มบันทึก -->
+        <div class="p-4 border-t border-slate-100 bg-white shrink-0">
+            <button onclick="saveLoginRewards()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-xl transition shadow-md">
+                <i class="fa-solid fa-floppy-disk mr-2"></i> บันทึกการตั้งค่า
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal ตั้งค่าสกินและตัวละครตามเลเวล -->
+<div id="modal-skin-settings" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] hidden flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        
+        <!-- ส่วนหัว -->
+        <div class="bg-indigo-500 p-5 flex justify-between items-center shrink-0">
+            <div class="text-white">
+                <h2 class="text-lg font-bold flex items-center gap-2"><i class="fa-solid fa-shirt"></i> ตั้งค่าการเปลี่ยนร่าง</h2>
+                <p class="text-[10px] text-indigo-100 mt-0.5">เปลี่ยนสกินอัตโนมัติตามสายอาชีพเมื่อถึงเลเวลที่กำหนด</p>
+            </div>
+            <button onclick="document.getElementById('modal-skin-settings').classList.add('hidden')" class="w-8 h-8 bg-white/20 hover:bg-white/30 text-white rounded-full flex items-center justify-center transition">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <!-- 🌟 แถบเลือกสายตัวละคร (ดึงจากร้านค้าอัตโนมัติ) 🌟 -->
+        <div class="p-4 bg-indigo-50 border-b border-indigo-100 shrink-0 flex gap-2 items-end">
+            <div class="flex-1">
+                <label class="text-[10px] font-bold text-indigo-800 block mb-1">เลือกสายตัวละคร (ดึงรายชื่ออวตารจากร้านค้า)</label>
+                <!-- เปลี่ยนเป็น Select และให้โหลดข้อมูลอัตโนมัติเมื่อเลือก -->
+                <select id="skin-class-name" onchange="openSkinSettings(this.value)" class="w-full border border-indigo-200 rounded-xl px-3 py-2 text-sm focus:outline-indigo-500 font-bold text-indigo-700 shadow-inner bg-white cursor-pointer">
+                    <option value="ทั่วไป">ทั่วไป (พื้นฐาน)</option>
+                </select>
+            </div>
+            <button onclick="openSkinSettings(document.getElementById('skin-class-name').value)" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl font-bold text-xs shadow-md transition active:scale-95 whitespace-nowrap h-[38px]">
+                <i class="fa-solid fa-rotate-right"></i> รีเฟรช
+            </button>
+        </div>
+
+        <!-- รายการเลเวล -->
+        <div class="p-4 bg-slate-50 flex-1 overflow-y-auto">
+            <div id="skin-list-container" class="space-y-3">
+                <!-- ข้อมูลจะถูกสร้างตรงนี้ -->
+            </div>
+        </div>
+
+        <!-- ปุ่มบันทึก -->
+        <div class="p-4 border-t border-slate-100 bg-white shrink-0">
+            <button onclick="saveSkinSettings()" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 rounded-xl transition shadow-md flex items-center justify-center gap-2">
+                <i class="fa-solid fa-floppy-disk"></i> บันทึกสกินตัวละครสายนี้
+            </button>
+        </div>
+    </div>
+</div>
+
 <script>
     // ==========================================
     // 1. ตั้งค่าการเชื่อมต่อ Supabase
@@ -706,6 +962,7 @@
     window.addEventListener('DOMContentLoaded', () => {
         if (localStorage.getItem('admin_logged_in')) {
             showDashboard();
+
         }
     });
 
@@ -766,6 +1023,7 @@
 
         adminLoadGames(); 
         updateDashboardStats();
+        loadGameOptions();
     }
 
     function logoutAdmin() {
@@ -812,13 +1070,22 @@
     // ==========================================
     function openModal(modalId) {
         const modal = document.getElementById(modalId);
+        if (!modal) {
+            console.error('หาหน้าต่างไม่เจอ:', modalId);
+            return; // ถ้าไม่เจอให้หยุดทำงานทันที ป้องกันโค้ดพัง
+        }
+
         const content = modal.querySelector('div[id^="modal-"]');
         
         modal.classList.remove('hidden');
-        setTimeout(() => {
-            content.classList.remove('translate-y-full');
-            content.classList.add('translate-y-0');
-        }, 10);
+        
+        // เช็คก่อนว่ามีกล่อง content ด้านในให้ทำแอนิเมชันไหม
+        if (content) {
+            setTimeout(() => {
+                content.classList.remove('translate-y-full');
+                content.classList.add('translate-y-0');
+            }, 10);
+        }
 
         if(modalId === 'modal-manage-students') {
             resetSingleForm();
@@ -838,10 +1105,15 @@
 
     function closeModal(modalId) {
         const modal = document.getElementById(modalId);
+        if (!modal) return;
+
         const content = modal.querySelector('div[id^="modal-"]');
         
-        content.classList.remove('translate-y-0');
-        content.classList.add('translate-y-full');
+        // เช็คก่อนว่ามีกล่อง content ไหม ถ้ามีค่อยเล่นแอนิเมชันปิด
+        if (content) {
+            content.classList.remove('translate-y-0');
+            content.classList.add('translate-y-full');
+        }
         
         setTimeout(() => {
             modal.classList.add('hidden');
@@ -855,6 +1127,8 @@
                 document.getElementById('modal-quest-title').innerText = "สร้างภารกิจใหม่";
                 document.getElementById('quest-coins').value = 0;
                 document.getElementById('quest-xp').value = 50;
+                document.getElementById('quest-end-date').value = '';
+                document.getElementById('quest-participants').value = 0;
             } else if(modalId === 'modal-add-item') {
                 document.getElementById('form-add-item').reset();
                 document.getElementById('edit-item-id').value = '';
@@ -930,6 +1204,17 @@
         document.getElementById('game-url').value = game.game_url;
         document.getElementById('game-active').checked = game.is_active;
         document.getElementById('modal-game-title').innerText = "แก้ไขข้อมูลเกม";
+        
+        // 🌟 เพิ่มบรรทัดนี้ เพื่อดึงหมวดหมู่มาแสดงใน Dropdown 🌟
+        if(document.getElementById('game-category')) {
+            document.getElementById('game-category').value = game.category || 'ทั่วไป';
+        }
+
+        // โค้ดรางวัลเดิมที่คุณครูเขียนไว้ (ถูกแล้วครับ)
+        document.getElementById('game-xp-multiplier').value = game.reward_xp_multiplier !== null ? game.reward_xp_multiplier : 1;
+        document.getElementById('game-coin-divisor').value = game.reward_coin_divisor !== null ? game.reward_coin_divisor : 10;
+        document.getElementById('game-special-item').value = game.special_item_drop || '';
+        
         openModal('modal-add-game');
     }
 
@@ -937,14 +1222,37 @@
         e.preventDefault();
         const btn = document.getElementById('btn-save-game');
         const id = document.getElementById('edit-game-id').value;
+        
+        // 🟢 1. ดึงค่าจากกล่องตั้งค่ารางวัล (แบบที่คุณครูทำไว้ ถูกต้องแล้วครับ)
+        const xpMult = parseFloat(document.getElementById('game-xp-multiplier').value) || 1.0;
+        const coinDiv = parseInt(document.getElementById('game-coin-divisor').value) || 10;
+        const specialItem = document.getElementById('game-special-item').value.trim() || null;
+
+        // 🌟 2. ดึงค่าหมวดหมู่จาก Dropdown 🌟
+        // (เช็คชื่อ ID ให้ตรงกับที่ตั้งไว้ใน HTML ด้วยนะครับ)
+        let categoryVal = 'ทั่วไป';
+        if(document.getElementById('game-category')) {
+             categoryVal = document.getElementById('game-category').value;
+        }
+
         const payload = {
             game_name: document.getElementById('game-name').value.trim(),
             description: document.getElementById('game-desc').value.trim(),
             game_url: document.getElementById('game-url').value.trim(),
-            is_active: document.getElementById('game-active').checked
+            is_active: document.getElementById('game-active').checked,
+            
+            // 🌟 3. ส่งหมวดหมู่ไปบันทึกลงฐานข้อมูล 🌟
+            category: categoryVal,
+
+            // 🟢 ข้อมูลรางวัลที่คุณครูทำไว้
+            reward_xp_multiplier: xpMult,
+            reward_coin_divisor: coinDiv,
+            special_item_drop: specialItem
         };
+        
         btn.disabled = true;
         btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> กำลังบันทึก...';
+        
         try {
             if (id) {
                 await supabaseClient.from('games').update(payload).eq('id', id);
@@ -957,8 +1265,12 @@
             adminLoadGames(); 
             if(!document.getElementById('modal-manage-games').classList.contains('hidden')) loadManageGames();
             updateDashboardStats();
-        } catch (err) { alert('❌ เกิดข้อผิดพลาด: ' + err.message); } 
-        finally { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> บันทึกข้อมูลเกม'; }
+        } catch (err) { 
+            alert('❌ เกิดข้อผิดพลาด: ' + err.message); 
+        } finally { 
+            btn.disabled = false; 
+            btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> บันทึกข้อมูลเกม'; 
+        }
     }
 
     async function deleteGame(id, name) {
@@ -1015,9 +1327,8 @@
         renderManageGames(allManageGames.filter(g => g.game_name.toLowerCase().includes(q)));
     }
 
-    // ==========================================
     // 6. ระบบนักเรียน (Students)
-    // ==========================================
+    
     let allStudents = [];
     async function loadStudentsList() {
         const container = document.getElementById('student-list-container');
@@ -1220,6 +1531,8 @@
         document.getElementById('quest-coins').value = q.reward_coins;
         document.getElementById('quest-xp').value = q.reward_xp;
         document.getElementById('quest-active').checked = q.is_active;
+        document.getElementById('quest-end-date').value = q.end_date ? q.end_date.substring(0, 16) : '';
+        document.getElementById('quest-participants').value = q.participant_count || 0;
         setTimeout(() => document.getElementById('quest-target-game').value = q.target_game_id || '', 100);
         document.getElementById('modal-quest-title').innerText = "แก้ไขภารกิจ";
         openModal('modal-add-quest');
@@ -1235,7 +1548,9 @@
             reward_coins: parseInt(document.getElementById('quest-coins').value) || 0,
             reward_xp: parseInt(document.getElementById('quest-xp').value) || 0,
             is_active: document.getElementById('quest-active').checked,
-            target_game_id: targetGameId ? targetGameId : null
+            target_game_id: targetGameId ? targetGameId : null,
+            end_date: document.getElementById('quest-end-date').value || null,
+            participant_count: parseInt(document.getElementById('quest-participants').value) || 0
         };
         try {
             if(id) await supabaseClient.from('quests').update(payload).eq('id', id);
@@ -1265,13 +1580,69 @@
     // 8. ระบบร้านค้า (Items)
     // ==========================================
     let allManageItems = [];
+    // ฟังก์ชันโหลดข้อมูลในหน้าจัดการคลังไอเทม
     async function loadManageItems() {
         const container = document.getElementById('manage-items-list');
-        container.innerHTML = '<div class="p-4 text-center text-xs text-slate-500">กำลังโหลด...</div>';
+        container.innerHTML = '<div class="text-center text-slate-500 text-sm py-4">กำลังโหลดข้อมูล...</div>';
+        
         try {
-            const { data } = await supabaseClient.from('items').select('*').order('created_at', { ascending: false });
-            allManageItems = data || []; renderManageItems(allManageItems);
-        } catch(err) {}
+            const { data: items, error } = await supabaseClient.from('items').select('*').order('created_at', { ascending: false });
+            if (error) throw error;
+            
+            if (items.length === 0) {
+                container.innerHTML = '<div class="text-center text-slate-500 text-sm py-4">ยังไม่มีไอเทมในระบบ</div>';
+                return;
+            }
+
+            container.innerHTML = '';
+            items.forEach(item => {
+                const encodedItem = encodeURIComponent(JSON.stringify(item));
+                
+                // 🟢 1. เพิ่มตัวเช็คตรงนี้ครับ: ถ้าเป็นลิงก์ให้แปลงเป็น <img> ถ้าไม่ใช่ก็ให้เป็นข้อความปกติ
+                let iconHtml = (item.image_icon || '').startsWith('http') 
+                    ? `<img src="${item.image_icon}" class="w-full h-full object-contain rounded-lg drop-shadow-sm">`
+                    : `<span class="text-2xl">${item.image_icon || '❓'}</span>`;
+
+                container.innerHTML += `
+                <div class="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-xl shadow-sm hover:shadow-md transition">
+                    <div class="flex items-center gap-3">
+                        
+                        <!-- 🟢 2. เปลี่ยนจุดที่แสดงรูป ให้เรียกใช้ ${iconHtml} แทน -->
+                        <div class="w-12 h-12 bg-slate-50 rounded-lg border border-slate-100 flex items-center justify-center overflow-hidden shrink-0">
+                            ${iconHtml}
+                        </div>
+                        
+                        <div>
+                            <div class="flex items-center gap-1.5 mb-0.5">
+                                <h4 class="font-bold text-slate-800 text-sm line-clamp-1">${item.item_name}</h4>
+                                <span class="bg-blue-100 text-blue-700 text-[9px] font-bold px-1.5 py-0.5 rounded">${item.item_type}</span>
+                            </div>
+                            <div class="flex items-center gap-3 text-[10px] font-medium">
+                                <span class="text-amber-500 bg-amber-50 px-1.5 py-0.5 rounded">🪙 ${item.price_coins}</span>
+                                <span class="text-cyan-500 bg-cyan-50 px-1.5 py-0.5 rounded">💎 ${item.price_diamonds}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="editItem('${encodedItem}')" class="w-8 h-8 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 flex items-center justify-center transition" title="แก้ไข">
+                            <i class="fa-solid fa-pen text-xs"></i>
+                        </button>
+                        <button onclick="deleteItem('${item.id}', '${item.item_name}')" class="w-8 h-8 rounded-full bg-rose-50 text-rose-600 hover:bg-rose-100 flex items-center justify-center transition" title="ลบ">
+                            <i class="fa-solid fa-trash text-xs"></i>
+                        </button>
+                        
+                        <!-- สวิตช์เปิดปิดสถานะ -->
+                        <label class="relative inline-flex items-center cursor-pointer ml-1">
+                            <input type="checkbox" class="sr-only peer" ${item.is_active ? 'checked' : ''} onchange="toggleItemStatus('${item.id}', ${item.is_active})">
+                            <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+                        </label>
+                    </div>
+                </div>
+                `;
+            });
+        } catch(err) {
+            container.innerHTML = '<div class="text-center text-rose-500 text-sm py-4">❌ โหลดข้อมูลไม่สำเร็จ</div>';
+        }
     }
 
     function renderManageItems(list) {
@@ -1306,40 +1677,7 @@
         renderManageItems(allManageItems.filter(item => item.item_name.toLowerCase().includes(q)));
     }
 
-    function editItem(encoded) {
-        const item = JSON.parse(decodeURIComponent(encoded));
-        document.getElementById('edit-item-id').value = item.id;
-        document.getElementById('item-icon').value = item.image_icon;
-        document.getElementById('item-name').value = item.item_name;
-        document.getElementById('item-type').value = item.item_type;
-        document.getElementById('item-desc').value = item.description || '';
-        document.getElementById('item-price-coins').value = item.price_coins;
-        document.getElementById('item-price-diamonds').value = item.price_diamonds;
-        document.getElementById('item-active').checked = item.is_active;
-        document.getElementById('modal-item-title').innerText = "แก้ไขไอเทม";
-        openModal('modal-add-item');
-    }
-
-    async function submitNewItem(e) {
-        e.preventDefault();
-        const id = document.getElementById('edit-item-id').value;
-        const payload = {
-            image_icon: document.getElementById('item-icon').value.trim(),
-            item_name: document.getElementById('item-name').value.trim(),
-            item_type: document.getElementById('item-type').value,
-            description: document.getElementById('item-desc').value.trim(),
-            price_coins: parseInt(document.getElementById('item-price-coins').value) || 0,
-            price_diamonds: parseInt(document.getElementById('item-price-diamonds').value) || 0,
-            is_active: document.getElementById('item-active').checked
-        };
-        try {
-            if(id) await supabaseClient.from('items').update(payload).eq('id', id);
-            else await supabaseClient.from('items').insert([payload]);
-            alert('บันทึกสำเร็จ!'); closeModal('modal-add-item');
-            if(!document.getElementById('modal-manage-items').classList.contains('hidden')) loadManageItems();
-            updateDashboardStats();
-        } catch(err) { alert('❌ ' + err.message); }
-    }
+        
 
     async function toggleItemStatus(id, currentStatus) {
         try {
@@ -1361,8 +1699,9 @@
     // ฟังก์ชันเปิดดูความคืบหน้าของนักเรียน (อัปเดตใหม่ให้โหลดกระเป๋าด้วย)
     async function viewStudentProgress(encodedStd) {
         const std = JSON.parse(decodeURIComponent(encodedStd));
-        currentViewStudent = std; // จำเอาไว้ใช้ตอนแจกรางวัล
+        currentViewStudent = std; 
         
+        // 1. อัปเดตข้อมูลทั่วไป (ชื่อ, เงิน, XP)
         document.getElementById('progress-std-name').innerText = `${std.first_name} ${std.last_name || ''}`;
         document.getElementById('progress-std-code').innerText = `รหัส: ${std.student_code} | ชั้นเรียน: ${std.class_room}`;
         document.getElementById('progress-coins').innerText = (std.coins || 0).toLocaleString();
@@ -1370,37 +1709,44 @@
         
         openModal('modal-student-progress');
 
-        // ส่วนดึงข้อมูลไอเทมในกระเป๋ามาแสดงให้ครูเห็น
+        // 2. ดึงข้อมูลไอเทมในกระเป๋าจาก Supabase
         const invContainer = document.getElementById('admin-student-inventory');
-        invContainer.innerHTML = '<div class="col-span-4 text-center text-[10px] text-slate-400 py-4">กำลังรื้อกระเป๋า...</div>';
+        invContainer.innerHTML = '<div class="col-span-4 text-center text-[10px] text-slate-400 py-4">กำลังเปิดกระเป๋า...</div>';
 
         try {
             const { data, error } = await supabaseClient
                 .from('student_inventory')
-                .select('*, items(*)')
+                .select('*, items(*)') // ดึงข้อมูลจากตารางไอเทมมาด้วย
                 .eq('student_id', std.id)
                 .order('purchased_at', { ascending: false });
             
             if (error) throw error;
 
             if (!data || data.length === 0) {
-                invContainer.innerHTML = '<div class="col-span-4 text-center text-[10px] text-slate-400 py-4 bg-slate-50 rounded-xl border border-dashed border-slate-200">ยังไม่ได้ซื้อไอเทมใดๆ</div>';
+                invContainer.innerHTML = '<div class="col-span-4 text-center text-[10px] text-slate-400 py-4 bg-slate-50 rounded-xl border border-dashed border-slate-200">กระเป๋าว่างเปล่า (ยังไม่มีไอเทม)</div>';
                 return;
             }
 
+            // 3. แสดงผลไอเทมที่ดึงมาได้
             invContainer.innerHTML = '';
             data.forEach(inv => {
                 const item = inv.items;
                 if(!item) return;
                 
+                // เช็คว่าชิ้นนี้กำลังถูกสวมใส่อยู่หรือไม่
+                const isEquipped = std.equipped_item_id === item.id;
+                const borderClass = isEquipped ? 'border-amber-400 bg-amber-50' : 'border-slate-100 bg-slate-50';
+                const equipBadge = isEquipped ? '<span class="absolute -top-2 -right-2 text-[8px] bg-amber-500 text-white px-1 rounded-full">ใส่อยู่</span>' : '';
+
                 invContainer.innerHTML += `
-                <div class="bg-slate-50 p-2 rounded-xl border border-slate-100 flex flex-col items-center text-center shadow-sm">
-                    <div class="text-2xl mb-1">${item.image_icon}</div>
+                <div class="relative ${borderClass} p-2 rounded-xl border flex flex-col items-center text-center shadow-sm">
+                    ${equipBadge}
+                    <div class="text-2xl mb-1">${item.image_icon || '📦'}</div>
                     <p class="text-[8px] font-bold text-slate-700 line-clamp-1 w-full" title="${item.item_name}">${item.item_name}</p>
                 </div>`;
             });
         } catch (err) {
-            invContainer.innerHTML = '<div class="col-span-4 text-center text-[10px] text-rose-400 py-4">โหลดข้อมูลล้มเหลว</div>';
+            invContainer.innerHTML = '<div class="col-span-4 text-center text-[10px] text-rose-400 py-4">โหลดกระเป๋าล้มเหลว</div>';
         }
     }
 
@@ -1508,6 +1854,941 @@
             alert('❌ เกิดข้อผิดพลาด: ' + err.message);
         }
     }
+
+
+    async function submitNewItem(e) {
+        e.preventDefault(); 
+
+        const id = document.getElementById('edit-item-id').value;
+        let iconValue = document.getElementById('item-icon').value.trim();
+        const fileInput = document.getElementById('item-image-file');
+        const file = fileInput ? fileInput.files[0] : null;
+
+        const btnSave = document.getElementById('btn-save-item');
+        const originalBtnHtml = btnSave.innerHTML;
+        btnSave.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> กำลังบันทึก...';
+        btnSave.disabled = true;
+
+        try {
+            if (file) {
+                const fileExt = file.name.split('.').pop();
+                const fileName = `item_${Date.now()}.${fileExt}`; 
+
+                const { data: uploadData, error: uploadError } = await supabaseClient
+                    .storage.from('items').upload(fileName, file);
+
+                if (uploadError) throw uploadError;
+                const { data: publicUrlData } = supabaseClient.storage.from('items').getPublicUrl(fileName);
+                iconValue = publicUrlData.publicUrl; 
+            }
+
+            if (!iconValue) throw new Error("กรุณาใส่อีโมจิ หรือเลือกไฟล์รูปภาพครับ");
+
+            const payload = {
+                image_icon: iconValue,
+                item_name: document.getElementById('item-name').value.trim(),
+                item_type: document.getElementById('item-type').value,
+                description: document.getElementById('item-desc').value.trim(),
+                item_effect: document.getElementById('item-effect').value.trim(), 
+                target_game_id: document.getElementById('item-target-game').value || null, 
+                price_coins: parseInt(document.getElementById('item-price-coins').value) || 0,
+                price_diamonds: parseInt(document.getElementById('item-price-diamonds').value) || 0,
+                is_active: document.getElementById('item-active').checked
+            };
+
+            // 🟢 จุดที่แก้: เพิ่มการดัก Error ตอนอัปเดตและเพิ่มข้อมูล เพื่อให้มันแจ้งเตือนถ้าเซฟไม่เข้า!
+            if (id) {
+                const { error } = await supabaseClient.from('items').update(payload).eq('id', id);
+                if (error) throw error; // ถ้ามีปัญหา ให้เด้งไปเข้า catch ทันที
+            } else {
+                const { error } = await supabaseClient.from('items').insert([payload]);
+                if (error) throw error; // ถ้ามีปัญหา ให้เด้งไปเข้า catch ทันที
+            }
+            
+            alert('🎉 บันทึกไอเทมสำเร็จ!'); 
+            closeModal('modal-add-item');
+            if (!document.getElementById('modal-manage-items').classList.contains('hidden')) loadManageItems();
+            updateDashboardStats();
+            
+        } catch(err) { 
+            // 🟢 ถ้าขึ้น Error ตรงนี้ จะได้รู้ทันทีว่าติดปัญหาที่ไหนครับ
+            alert('❌ เกิดข้อผิดพลาดจากระบบ: ' + err.message); 
+            console.error("Supabase Error:", err);
+        } finally {
+            btnSave.innerHTML = originalBtnHtml;
+            btnSave.disabled = false;
+        }
+    }
+
+      
+    // 2. ฟังก์ชันลบไอเทม
+    async function deleteItem(id, itemName) {
+        if (!confirm(`⚠️ ยืนยันการลบไอเทม "${itemName}" ใช่หรือไม่?\n(เมื่อลบแล้วจะไม่สามารถกู้คืนได้)`)) return;
+
+        try {
+            const { error } = await supabaseClient.from('items').delete().eq('id', id);
+            if (error) throw error;
+            
+            alert(`🗑️ ลบไอเทม "${itemName}" เรียบร้อยแล้ว!`);
+            loadManageItems(); // โหลดรายการหน้านี้ใหม่
+            if (typeof updateDashboardStats === 'function') updateDashboardStats(); // อัปเดตตัวเลขสถิติหน้าแรก
+            
+        } catch (err) {
+            alert('❌ ลบไอเทมไม่สำเร็จ: ' + err.message);
+        }
+    }
+
+    // 3. ฟังก์ชันสวิตช์เปิด/ปิด การวางขาย
+    async function toggleItemStatus(id, currentStatus) {
+        try {
+            // สั่งอัปเดตสถานะให้ตรงข้ามกับของเดิม (!currentStatus)
+            const { error } = await supabaseClient
+                .from('items')
+                .update({ is_active: !currentStatus })
+                .eq('id', id);
+                
+            if (error) throw error;
+            
+            loadManageItems(); // รีเฟรชรายการเพื่อให้สวิตช์จำค่าใหม่
+        } catch (err) {
+            alert('❌ เปลี่ยนสถานะไม่สำเร็จ: ' + err.message);
+            loadManageItems(); // ถ้ามีปัญหา ให้ดึงค่าเดิมกลับมา
+        }
+    }  
+
+// 1. ฟังก์ชันแก้ไขไอเทม (แก้ปัญหาหน้าต่างซ้อนทับ)
+    function editItem(encoded) {
+        try {
+            const item = JSON.parse(decodeURIComponent(encoded));
+            
+            document.getElementById('edit-item-id').value = item.id;
+            document.getElementById('item-icon').value = item.image_icon || '';
+            
+            const fileInput = document.getElementById('item-image-file');
+            if (fileInput) fileInput.value = ''; 
+            
+            document.getElementById('item-name').value = item.item_name;
+            document.getElementById('item-type').value = item.item_type;
+            document.getElementById('item-desc').value = item.description || '';
+            
+            document.getElementById('item-effect').value = item.item_effect || ''; 
+            setTimeout(() => {
+                document.getElementById('item-target-game').value = item.target_game_id || '';
+            }, 100); 
+            
+            document.getElementById('item-price-coins').value = item.price_coins;
+            document.getElementById('item-price-diamonds').value = item.price_diamonds;
+            document.getElementById('item-active').checked = item.is_active;
+            
+            const modalTitle = document.getElementById('modal-item-title');
+            if (modalTitle) modalTitle.innerText = "แก้ไขไอเทม";
+            
+            // 🟢 จุดที่แก้: สั่งปิดหน้าต่างรายการก่อน แล้วหน่วงเวลา 0.3 วินาทีค่อยเปิดหน้าต่างแก้ไข
+            closeModal('modal-manage-items');
+            setTimeout(() => {
+                openModal('modal-add-item');
+            }, 300);
+            
+        } catch (err) {
+            console.error("Error editing item:", err);
+            alert('❌ เกิดข้อผิดพลาดในการเปิดฟอร์มแก้ไข');
+        }
+    }
+
+    // ฟังก์ชันดึงรายชื่อเกมมาใส่ในตัวเลือก
+    async function loadGameOptions() {
+        try {
+            const { data: games, error } = await supabaseClient
+                .from('games')
+                .select('id, game_name')
+                .eq('is_active', true);
+
+            if (error) throw error;
+
+            const selectElement = document.getElementById('item-target-game');
+            if(!selectElement) return;
+
+            selectElement.innerHTML = '<option value="">🌟 มีผลกับทุกเกม</option>';
+            games.forEach(game => {
+                selectElement.innerHTML += `<option value="${game.id}">🎮 ${game.game_name}</option>`;
+            });
+        } catch (err) {
+            console.error("โหลดรายชื่อเกมไม่สำเร็จ:", err);
+        }
+    }
+
+// ==========================================
+    // ระบบตั้งค่าของรางวัล (Rewards Config)
+    // ==========================================
+    let allShopItemsForRewards = [];
+    let currentEditRewardInfo = null; // เก็บข้อมูลว่ากำลังแก้วันที่/เลเวลไหน
+
+    // 1. เปิดหน้าต่างหลัก
+    async function openManageRewards() {
+        openModal('modal-manage-rewards');
+        await fetchItemsForRewards(); // โหลดไอเทมเตรียมไว้ก่อน
+        await loadRewardsData();
+    }
+
+    // 2. ดึงไอเทมทั้งหมดในคลังมาเก็บไว้รอ (เพื่อใช้แสดงใน Dropdown)
+    async function fetchItemsForRewards() {
+        const { data } = await supabaseClient.from('items').select('id, item_name, item_type, image_icon');
+        if (data) allShopItemsForRewards = data;
+    }
+
+    // 3. สลับแท็บ วันที่ / เลเวล
+    function switchRewardTab(tab) {
+        document.getElementById('content-daily-reward').classList.toggle('hidden', tab !== 'daily');
+        document.getElementById('content-level-reward').classList.toggle('hidden', tab !== 'level');
+        
+        document.getElementById('tab-daily-reward').className = tab === 'daily' 
+            ? 'flex-1 py-2 rounded-xl bg-pink-100 text-pink-600 font-bold text-sm transition' 
+            : 'flex-1 py-2 rounded-xl bg-slate-100 text-slate-500 font-bold text-sm transition';
+            
+        document.getElementById('tab-level-reward').className = tab === 'level' 
+            ? 'flex-1 py-2 rounded-xl bg-pink-100 text-pink-600 font-bold text-sm transition' 
+            : 'flex-1 py-2 rounded-xl bg-slate-100 text-slate-500 font-bold text-sm transition';
+    }
+
+    // 4. โหลดข้อมูลมาแสดงในลิสต์
+    async function loadRewardsData() {
+        // โหลด 7 วัน
+        const { data: dailyData } = await supabaseClient.from('config_daily').select('*').order('day_num', { ascending: true });
+        const containerDaily = document.getElementById('content-daily-reward');
+        containerDaily.innerHTML = '';
+        if(dailyData) {
+            dailyData.forEach(item => {
+                containerDaily.innerHTML += createRewardCard(item, 'daily');
+            });
+        }
+
+        // โหลดเลเวล 2-99
+        const { data: levelData } = await supabaseClient.from('config_level').select('*').order('level_num', { ascending: true });
+        const containerLevel = document.getElementById('content-level-reward');
+        // 🟢 เพิ่มปุ่ม "แก้ไขเหรียญทั้งหมด" ไว้ด้านบนสุดของแท็บเลเวล
+        containerLevel.innerHTML = `
+            <div class="mb-3 sticky top-0 z-10 bg-white pb-2">
+                <button onclick="bulkUpdateLevelCoins()" class="w-full bg-indigo-50 hover:bg-indigo-100 text-indigo-600 border border-indigo-200 py-2.5 rounded-xl text-sm font-bold transition flex items-center justify-center gap-2 shadow-sm">
+                    <span class="text-lg">⚡</span> เปลี่ยนรางวัลเป็น "เหรียญทอง" ทุกเลเวล (ทีเดียวจบ)
+                </button>
+            </div>
+        `;
+        if(levelData) {
+            levelData.forEach(item => {
+                containerLevel.innerHTML += createRewardCard(item, 'level');
+            });
+        }
+    }
+
+    // สร้างกล่องการ์ดแต่ละบรรทัด
+    function createRewardCard(item, mode) {
+        const title = mode === 'daily' ? `ล็อกอินวันที่ ${item.day_num}` : `อัปเลเวลถึง Lv.${item.level_num}`;
+        const encoded = encodeURIComponent(JSON.stringify({...item, mode}));
+        
+        // แปลงสัญลักษณ์
+        let icon = '🎁';
+        let detail = item.reward_value;
+        if(item.reward_type === 'coins') { icon = '🪙'; detail += ' เหรียญ'; }
+        if(item.reward_type === 'diamonds') { icon = '💎'; detail += ' เพชร'; }
+        if(['item', 'avatar', 'pet'].includes(item.reward_type)) {
+            // ไปหาชื่อไอเทมมาแสดง
+            const foundItem = allShopItemsForRewards.find(i => i.id === item.reward_value);
+            icon = foundItem && !foundItem.image_icon.startsWith('http') ? foundItem.image_icon : '🎒';
+            detail = foundItem ? foundItem.item_name : 'ไม่พบข้อมูลไอเทม';
+        }
+
+        return `
+        <div class="bg-white border rounded-xl p-3 flex justify-between items-center hover:shadow-md transition">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center text-xl shrink-0">${icon}</div>
+                <div>
+                    <h4 class="text-sm font-bold text-slate-700">${title}</h4>
+                    <p class="text-xs text-slate-500 font-bold">รับ: <span class="text-pink-500">${detail}</span></p>
+                </div>
+            </div>
+            <button onclick="openEditReward('${encoded}')" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded-lg text-xs font-bold transition">✏️ แก้ไข</button>
+        </div>`;
+    }
+
+    // 5. เปิดฟอร์มแก้ไข
+    function openEditReward(encoded) {
+        const item = JSON.parse(decodeURIComponent(encoded));
+        currentEditRewardInfo = item; // จำไว้ว่ากำลังแก้อะไร
+        
+        document.getElementById('edit-reward-title').innerText = item.mode === 'daily' ? `แก้ไขรางวัล วันที่ ${item.day_num}` : `แก้ไขรางวัล เลเวล ${item.level_num}`;
+        document.getElementById('edit-reward-type').value = item.reward_type;
+        
+        toggleRewardInputType(); // สลับกล่องกรอก
+        
+        if(['coins', 'diamonds'].includes(item.reward_type)) {
+            document.getElementById('edit-reward-number').value = item.reward_value;
+        } else {
+            document.getElementById('edit-reward-item-id').value = item.reward_value;
+        }
+        
+        closeModal('modal-manage-rewards');
+        openModal('modal-edit-reward');
+    }
+
+    // 6. สลับกล่องกรอกตัวเลข หรือ เลือกไอเทม
+    function toggleRewardInputType() {
+        const type = document.getElementById('edit-reward-type').value;
+        const boxNumber = document.getElementById('box-reward-number');
+        const boxItem = document.getElementById('box-reward-item');
+        const selectItem = document.getElementById('edit-reward-item-id');
+
+        if (['coins', 'diamonds'].includes(type)) {
+            boxNumber.classList.remove('hidden');
+            boxItem.classList.add('hidden');
+        } else {
+            boxNumber.classList.add('hidden');
+            boxItem.classList.remove('hidden');
+            
+            // กรองไอเทมตามประเภทที่เลือกมาใส่ใน Dropdown
+            selectItem.innerHTML = '';
+            const filteredItems = allShopItemsForRewards.filter(i => i.item_type === type);
+            if(filteredItems.length === 0) {
+                selectItem.innerHTML = '<option value="">-- ไม่มีไอเทมในหมวดนี้เลย --</option>';
+            } else {
+                filteredItems.forEach(i => {
+                    selectItem.innerHTML += `<option value="${i.id}">${i.item_name}</option>`;
+                });
+            }
+        }
+    }
+
+    // 7. บันทึกกลับลง Supabase
+    async function saveRewardConfig() {
+        if (!currentEditRewardInfo) return;
+        
+        const type = document.getElementById('edit-reward-type').value;
+        let value = '';
+        
+        if (['coins', 'diamonds'].includes(type)) {
+            value = document.getElementById('edit-reward-number').value;
+        } else {
+            value = document.getElementById('edit-reward-item-id').value;
+            if(!value) {
+                alert('กรุณาเลือกไอเทมครับ (หากไม่มีให้ไปสร้างในคลังก่อน)');
+                return;
+            }
+        }
+
+        const tableName = currentEditRewardInfo.mode === 'daily' ? 'config_daily' : 'config_level';
+        
+        try {
+            const { error } = await supabaseClient
+                .from(tableName)
+                .update({ reward_type: type, reward_value: value })
+                .eq('id', currentEditRewardInfo.id);
+
+            if (error) throw error;
+            
+            alert('✅ อัปเดตของรางวัลสำเร็จ!');
+            closeModal('modal-edit-reward');
+            openManageRewards(); // โหลดข้อมูลใหม่แล้วเปิดหน้าต่างลิสต์กลับมา
+            
+        } catch (err) {
+            alert('❌ เกิดข้อผิดพลาด: ' + err.message);
+        }
+    }
+
+        // 8. ฟังก์ชันเวทมนตร์: แก้ไขรางวัลทุกเลเวลพร้อมกัน
+    async function bulkUpdateLevelCoins() {
+        // เด้งหน้าต่างถามจำนวนเหรียญ
+        const amountInput = prompt("ระบุจำนวน 'เหรียญทอง' ที่ต้องการแจกสำหรับทุกเลเวล (Lv.2 - 99):", "100");
+        
+        // ถ้ากดยกเลิก หรือไม่พิมพ์อะไรมา ให้หยุดทำงาน
+        if (amountInput === null || amountInput.trim() === '') return;
+        
+        const numAmount = parseInt(amountInput);
+        if (isNaN(numAmount) || numAmount < 0) {
+            alert("❌ กรุณาใส่ตัวเลขให้ถูกต้องครับ");
+            return;
+        }
+
+        // หน้าต่างยืนยันความแน่ใจ
+        if (!confirm(`⚠️ ยืนยันการเปลี่ยนของรางวัล "ทุกเลเวล" เป็น 🪙 ${numAmount} เหรียญทอง ใช่หรือไม่?\n(ของรางวัลเดิมที่ตั้งไว้จะถูกทับทั้งหมด)`)) return;
+
+        try {
+            // อัปเดตรวดเดียวทั้งตาราง config_level (เฉพาะบรรทัดที่เลเวลมากกว่า 0)
+            const { error } = await supabaseClient
+                .from('config_level')
+                .update({ reward_type: 'coins', reward_value: numAmount.toString() })
+                .gt('level_num', 0); 
+
+            if (error) throw error;
+
+            alert(`✅ อัปเดตของรางวัลเป็น ${numAmount} เหรียญทอง ทุกเลเวลเรียบร้อยแล้ว!`);
+            loadRewardsData(); // โหลดหน้าต่างใหม่ให้เห็นผลทันที
+            
+        } catch (err) {
+            alert('❌ เกิดข้อผิดพลาด: ' + err.message);
+        }
+    }
+
+    // ==========================================
+    // ระบบรางวัลล็อกอิน & เลเวลอัป (Reward System)
+    // ==========================================
+    let pendingDailyReward = null;
+    let pendingLevelReward = null;
+    let targetNewStreak = 1;
+    let targetLevelToReward = 1;
+
+    // 1. ฟังก์ชันตัวหลัก: เช็คว่ามีสิทธิ์รับรางวัลไหม (เรียกใช้ตอนเข้าเว็บ)
+    async function checkAndShowRewards() {
+        if (!currentStudent) return;
+
+        // เช็คล็อกอินก่อน
+        const today = new Date().toLocaleDateString('en-CA'); // ได้ฟอร์แมต YYYY-MM-DD
+        let lastLogin = currentStudent.last_login_date;
+        let streak = currentStudent.login_streak || 0;
+
+        if (lastLogin !== today) {
+            // เช็คว่าเมื่อวานเข้าไหม
+            let yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayStr = yesterday.toLocaleDateString('en-CA');
+
+            if (lastLogin === yesterdayStr) {
+                streak += 1;
+                if (streak > 7) streak = 1; // ครบ 7 วัน กลับไปเริ่มวันที่ 1 ใหม่
+            } else {
+                streak = 1; // ขาดล็อกอิน เริ่มต้น 1 ใหม่
+            }
+
+            targetNewStreak = streak;
+
+            // ดึงของรางวัลจาก Supabase
+            const { data } = await supabaseClient.from('config_daily').select('*').eq('day_num', streak).single();
+            if (data) {
+                pendingDailyReward = data;
+                setupRewardUI('daily', streak, data);
+                return; // หยุดตรงนี้ก่อน รอเด็กกดรับรางวัล ค่อยไปเช็คเลเวลต่อ
+            }
+        }
+
+        // ถ้าไม่มีรางวัลรายวันแล้ว ให้ไปเช็ครางวัลเลเวลต่อ
+        checkLevelReward();
+    }
+
+    // 2. เช็ครางวัลอัปเลเวล
+    async function checkLevelReward() {
+        // หาระดับเลเวลปัจจุบัน (สูตร: 500 * 1.2)
+        let currentTotalXP = currentStudent.exp || 0;
+        let calculatedLevel = 1;
+        let xpNeeded = 500;
+        let accumulatedXP = 0;
+        
+        while (currentTotalXP >= accumulatedXP + xpNeeded) {
+            accumulatedXP += xpNeeded;
+            calculatedLevel++;
+            xpNeeded = Math.floor(xpNeeded * 1.2);
+        }
+
+        let lastRewarded = currentStudent.last_rewarded_level || 1;
+
+        // ถ้าเลเวลปัจจุบัน มากกว่า เลเวลที่เคยรับรางวัลไปแล้ว
+        if (calculatedLevel > lastRewarded) {
+            targetLevelToReward = lastRewarded + 1; // แจกของเลเวลถัดไป
+            
+            const { data } = await supabaseClient.from('config_level').select('*').eq('level_num', targetLevelToReward).single();
+            if (data) {
+                pendingLevelReward = data;
+                setupRewardUI('level', targetLevelToReward, data);
+                return;
+            } else {
+                // ถ้าแอดมินไม่ได้ตั้งรางวัลเลเวลนี้ไว้ ให้ข้ามไปอัปเดตฐานข้อมูลเลย
+                currentStudent.last_rewarded_level = targetLevelToReward;
+                await supabaseClient.from('students').update({ last_rewarded_level: targetLevelToReward }).eq('id', currentStudent.id);
+                checkLevelReward(); // เช็คเลเวลถัดไปซ้ำ
+            }
+        }
+    }
+
+    // 3. เตรียมหน้าต่าง UI โชว์รูป/ข้อความให้ตรงกับของรางวัล
+    async function setupRewardUI(mode, num, dataConfig) {
+        let iconHtml = '🎁';
+        let textHtml = '';
+
+        if (dataConfig.reward_type === 'coins') {
+            iconHtml = '🪙';
+            textHtml = `เหรียญทอง x${dataConfig.reward_value}`;
+        } else if (dataConfig.reward_type === 'diamonds') {
+            iconHtml = '💎';
+            textHtml = `เพชร x${dataConfig.reward_value}`;
+        } else {
+            // ดึงชื่อไอเทมจากตาราง items
+            const { data: itemData } = await supabaseClient.from('items').select('*').eq('id', dataConfig.reward_value).single();
+            if (itemData) {
+                iconHtml = itemData.image_icon.startsWith('http') ? `<img src="${itemData.image_icon}" class="w-16 h-16 object-contain">` : itemData.image_icon;
+                textHtml = itemData.item_name;
+            } else {
+                textHtml = "ไอเทมพิเศษ";
+            }
+        }
+
+        if (mode === 'daily') {
+            document.getElementById('daily-streak-num').innerText = num;
+            document.getElementById('daily-reward-icon').innerHTML = iconHtml;
+            document.getElementById('daily-reward-text').innerText = textHtml;
+            document.getElementById('modal-daily-reward').classList.remove('hidden');
+        } else {
+            document.getElementById('level-reward-num').innerText = num;
+            document.getElementById('level-reward-icon').innerHTML = iconHtml;
+            document.getElementById('level-reward-text').innerText = textHtml;
+            document.getElementById('modal-level-reward').classList.remove('hidden');
+        }
+    }
+
+    // 4. เวลากด "รับรางวัลล็อกอิน"
+    async function claimDailyReward() {
+        if (!pendingDailyReward) return;
+        
+        await grantRewardToStudent(pendingDailyReward); // เอาของเข้ากระเป๋า
+        
+        // อัปเดตวันที่ล่าสุด
+        const today = new Date().toLocaleDateString('en-CA');
+        currentStudent.last_login_date = today;
+        currentStudent.login_streak = targetNewStreak;
+        
+        await supabaseClient.from('students').update({ 
+            last_login_date: today, 
+            login_streak: targetNewStreak 
+        }).eq('id', currentStudent.id);
+        
+        localStorage.setItem('schoolquest_student', JSON.stringify(currentStudent));
+        
+        document.getElementById('modal-daily-reward').classList.add('hidden');
+        
+        // รับเสร็จปุ๊บ ไปเช็ครางวัลเลเวลต่อทันที เผื่อมีตกค้าง
+        setTimeout(() => { checkLevelReward(); }, 500); 
+    }
+
+    // 5. เวลากด "รับรางวัลเลเวลอัป"
+    async function claimLevelReward() {
+        if (!pendingLevelReward) return;
+        
+        await grantRewardToStudent(pendingLevelReward);
+        
+        currentStudent.last_rewarded_level = targetLevelToReward;
+        await supabaseClient.from('students').update({ last_rewarded_level: targetLevelToReward }).eq('id', currentStudent.id);
+        localStorage.setItem('schoolquest_student', JSON.stringify(currentStudent));
+        
+        document.getElementById('modal-level-reward').classList.add('hidden');
+        
+        // เช็คซ้ำอีกรอบ (เผื่อเด็ก XP พุ่งปรี๊ด เลเวลอัป 2 ขั้นรวด!)
+        setTimeout(() => { checkLevelReward(); }, 500);
+    }
+
+    // ฟังก์ชันย่อย: ยัดของใส่กระเป๋าหรือบวกเงิน
+    async function grantRewardToStudent(rewardData) {
+        if (rewardData.reward_type === 'coins') {
+            currentStudent.coins = (currentStudent.coins || 0) + parseInt(rewardData.reward_value);
+            await supabaseClient.from('students').update({ coins: currentStudent.coins }).eq('id', currentStudent.id);
+        } 
+        else if (rewardData.reward_type === 'diamonds') {
+            currentStudent.diamonds = (currentStudent.diamonds || 0) + parseInt(rewardData.reward_value);
+            await supabaseClient.from('students').update({ diamonds: currentStudent.diamonds }).eq('id', currentStudent.id);
+        } 
+        else {
+            // ถ้าเป็นไอเทม
+            const inventory = currentStudent.inventory_items || [];
+            inventory.push(rewardData.reward_value);
+            currentStudent.inventory_items = inventory;
+            await supabaseClient.from('students').update({ inventory_items: inventory }).eq('id', currentStudent.id);
+            // อัปเดตกระเป๋าใน UI
+            if(typeof loadInventory === 'function') loadInventory(); 
+        }
+        
+        // อัปเดตตัวเลขหน้าเว็บ
+        if(typeof updateUI === 'function') updateUI();
+    }
+
+    // สั่งให้ระบบเช็คของรางวัลทันทีที่เปิดหน้าเว็บ (หน่วงเวลา 1 วินาทีรอโหลดข้อมูลนักเรียนให้เสร็จก่อน)
+    setTimeout(() => {
+       // checkAndShowRewards();
+    }, 1000);
+
+    // ==========================================
+    // ระบบส่งออกข้อมูลนักเรียนเป็น Excel (CSV)
+    // ==========================================
+    async function exportStudentsToCSV() {
+        try {
+            // แจ้งเตือนกำลังโหลด
+            const btn = event.currentTarget;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> กำลังเตรียมไฟล์...';
+            btn.disabled = true;
+
+            // 1. ดึงข้อมูลนักเรียนทั้งหมดจาก Supabase
+            const { data: students, error } = await supabaseClient.from('students').select('*');
+            if (error) throw error;
+
+            // 2. สร้างหัวตาราง (ใส่ \uFEFF ด้านหน้าเพื่อให้ Excel อ่านภาษาไทยออก ไม่เป็นภาษาต่างดาว)
+            let csvContent = "\uFEFF"; 
+            csvContent += "รหัสนักเรียน,ชื่อ-สกุล,เลเวล,XP รวม,เหรียญทอง,เพชร,ภารกิจที่ทำสำเร็จ (ครั้ง),เข้าใช้งานล่าสุด\n";
+
+            // 3. วนลูปนักเรียนทีละคนเพื่อคำนวณและจัดบรรทัด
+            students.forEach(student => {
+                // คำนวณเลเวลปัจจุบัน (สูตรเดียวกับในเกม 500 * 1.2)
+                let currentTotalXP = student.exp || 0;
+                let calculatedLevel = 1;
+                let xpNeeded = 500;
+                let accumulatedXP = 0;
+                
+                while (currentTotalXP >= accumulatedXP + xpNeeded) {
+                    accumulatedXP += xpNeeded;
+                    calculatedLevel++;
+                    xpNeeded = Math.floor(xpNeeded * 1.2);
+                }
+
+                // นับจำนวนภารกิจที่ทำสำเร็จ
+                let completedQuestsCount = student.completed_quests ? student.completed_quests.length : 0;
+
+                // ใส่ "" คลุมข้อความกันพังเผื่อเด็กพิมพ์ลูกน้ำ(,) ในชื่อ
+                let id = `"${student.id || student.student_id || ''}"`;
+                let name = `"${student.name || student.student_name || student.fullname || ''}"`;
+                let level = calculatedLevel;
+                let xp = student.exp || 0;
+                let coins = student.coins || 0;
+                let diamonds = student.diamonds || 0;
+                let quests = completedQuestsCount;
+                let lastLogin = `"${student.last_login_date || '-'}"`;
+
+                // เอาข้อมูลมาต่อกันแล้วขึ้นบรรทัดใหม่
+                csvContent += `${id},${name},${level},${xp},${coins},${diamonds},${quests},${lastLogin}\n`;
+            });
+
+            // 4. สั่งเบราว์เซอร์ให้ดาวน์โหลดไฟล์
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            
+            // ตั้งชื่อไฟล์ใส่วันที่ด้วย จะได้ไม่งง
+            const dateStr = new Date().toLocaleDateString('en-CA'); // ได้ฟอร์แมต YYYY-MM-DD
+            link.setAttribute("href", url);
+            link.setAttribute("download", `SchoolQuest_คะแนนนักเรียน_${dateStr}.csv`);
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            // คืนค่าปุ่มกลับมาเหมือนเดิม
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+
+        } catch (err) {
+            alert("❌ เกิดข้อผิดพลาดในการส่งออกข้อมูล: " + err.message);
+            event.currentTarget.innerHTML = '<i class="fa-solid fa-file-excel"></i> ส่งออก Excel';
+            event.currentTarget.disabled = false;
+        }
+    }
+    function openLoginRewardSettings() {
+        const container = document.getElementById('login-reward-list');
+        container.innerHTML = '';
+        
+        // จำลองข้อมูลตั้งค่าเริ่มต้น (เดี๋ยวเราค่อยไปเชื่อมกับ Supabase ทีหลังได้ครับ)
+        // คุณครูสามารถแก้ตัวเลขตรงนี้เป็นค่า Default ได้เลย
+        const defaultRewards = [
+            { day: 1, xp: 20, coin: 5 },
+            { day: 2, xp: 30, coin: 10 },
+            { day: 3, xp: 40, coin: 15 },
+            { day: 4, xp: 50, coin: 20 },
+            { day: 5, xp: 60, coin: 25 },
+            { day: 6, xp: 80, coin: 40 },
+            { day: 7, xp: 150, coin: 100, isSpecial: true } // วันที่ 7 แจกหนักหน่อย
+        ];
+
+        defaultRewards.forEach(reward => {
+            container.innerHTML += `
+                <div class="bg-white border ${reward.isSpecial ? 'border-amber-300 bg-amber-50' : 'border-slate-200'} rounded-xl p-3 flex items-center gap-3">
+                    <div class="w-10 h-10 ${reward.isSpecial ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-500'} rounded-lg flex flex-col items-center justify-center shrink-0">
+                        <span class="text-[9px] font-bold uppercase">Day</span>
+                        <span class="text-sm font-black leading-none">${reward.day}</span>
+                    </div>
+                    <div class="flex-1 grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-500">ได้ XP</label>
+                            <input type="number" id="reward-xp-${reward.day}" value="${reward.xp}" class="w-full border border-slate-200 rounded px-2 py-1 text-xs focus:outline-emerald-500">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-500">ได้เหรียญ</label>
+                            <input type="number" id="reward-coin-${reward.day}" value="${reward.coin}" class="w-full border border-slate-200 rounded px-2 py-1 text-xs focus:outline-emerald-500">
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        document.getElementById('modal-login-rewards').classList.remove('hidden');
+    }
+
+    function saveLoginRewards() {
+        // ส่วนนี้เตรียมไว้สำหรับดึงค่าไปบันทึกในฐานข้อมูลครับ
+        alert('บันทึกการตั้งค่ารางวัลล็อกอินเรียบร้อยแล้ว!');
+        document.getElementById('modal-login-rewards').classList.add('hidden');
+    }
+
+    async function openSkinSettings(className = 'ทั่วไป') {
+        const container = document.getElementById('skin-list-container');
+        container.innerHTML = '<div class="text-center py-8 text-indigo-400 font-bold animate-pulse"><i class="fa-solid fa-spinner fa-spin mr-2"></i> กำลังโหลดข้อมูล...</div>';
+        document.getElementById('modal-skin-settings').classList.remove('hidden');
+        
+        const safeClassName = className.trim() || 'ทั่วไป';
+
+        // 🌟 1. โหลดรายชื่อ "อวตาร" จากตาราง items มาใส่ Dropdown อัตโนมัติ 🌟
+        try {
+            const { data: avatars } = await supabaseClient
+                .from('items')
+                .select('item_name')
+                .eq('item_type', 'avatar');
+            
+            const selectClass = document.getElementById('skin-class-name');
+            if (selectClass) {
+                let optionsHtml = `<option value="ทั่วไป" ${safeClassName === 'ทั่วไป' ? 'selected' : ''}>ทั่วไป (พื้นฐาน)</option>`;
+                if (avatars) {
+                    const uniqueAvatars = [...new Set(avatars.map(a => a.item_name))]; 
+                    uniqueAvatars.forEach(name => {
+                        optionsHtml += `<option value="${name}" ${safeClassName === name ? 'selected' : ''}>${name}</option>`;
+                    });
+                }
+                selectClass.innerHTML = optionsHtml;
+            }
+        } catch (err) {
+            console.error("ดึงรายชื่อคลาสพลาด:", err);
+        }
+
+        // 🌟 2. ดึงข้อมูลสกินร่างพัฒนาของสายที่เลือกมาแสดง 🌟
+        const levelMilestones = [1];
+        for (let i = 5; i <= 95; i += 5) levelMilestones.push(i);
+        levelMilestones.push(99);
+
+        let savedSkins = [];
+        try {
+            const { data, error } = await supabaseClient.from('level_skins').select('*').eq('character_class', safeClassName);
+            if (!error && data) savedSkins = data;
+        } catch (err) { console.error("ดึงข้อมูลสกินพลาด:", err); }
+
+        container.innerHTML = '';
+        
+        levelMilestones.forEach(lv => {
+            let isEpic = lv >= 50;
+            let isLegendary = lv >= 90;
+            let badgeBg = isLegendary ? 'bg-amber-100 text-amber-600' : (isEpic ? 'bg-purple-100 text-purple-600' : 'bg-indigo-50 text-indigo-500');
+            let borderStyle = isLegendary ? 'border-amber-300 bg-amber-50/30' : (isEpic ? 'border-purple-200 bg-purple-50/30' : 'border-slate-200 bg-white');
+
+            const skinData = savedSkins.find(s => s.level === lv) || { skin_url: '', title: '' };
+
+            // เช็คว่ามีรูปเดิมหรือไม่ ถ้ามีให้โชว์รูปตัวอย่างเล็กๆ
+            let oldImgPreview = '';
+            if (skinData.skin_url) {
+                oldImgPreview = `
+                    <div class="flex items-center gap-2 mt-1">
+                        <img src="${skinData.skin_url}" class="w-5 h-5 object-cover rounded shadow-sm border border-slate-200">
+                        <span class="text-[9px] text-emerald-600 font-bold"><i class="fa-solid fa-check"></i> บันทึกรูปแล้ว</span>
+                    </div>
+                `;
+            }
+
+            // 🌟 ปรับเปลี่ยนช่องกรอก URL เป็นช่องอัปโหลดไฟล์ (File Input)
+            container.innerHTML += `
+                <div class="border ${borderStyle} rounded-xl p-3 flex flex-col sm:flex-row items-start sm:items-center gap-3 shadow-sm transition hover:shadow-md">
+                    <div class="w-12 h-12 ${badgeBg} rounded-lg flex flex-col items-center justify-center shrink-0">
+                        <span class="text-[9px] font-bold uppercase">Lv.</span>
+                        <span class="text-base font-black leading-none">${lv}</span>
+                    </div>
+                    <div class="flex-1 w-full grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-500 mb-0.5 block">อัปโหลดรูปภาพสกิน</label>
+                            <input type="file" id="skin-file-${lv}" accept="image/*" class="w-full text-[9px] text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[9px] file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                            <!-- เก็บ URL เก่าซ่อนไว้ เผื่อไม่ได้อัปโหลดรูปใหม่ -->
+                            <input type="hidden" id="skin-old-img-${lv}" value="${skinData.skin_url}">
+                            ${oldImgPreview}
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-500 mb-0.5 block">ชื่อคลาส / ฉายา</label>
+                            <input type="text" id="skin-title-${lv}" value="${skinData.title}" placeholder="ฉายาเมื่อถึงเลเวลนี้" class="w-full border border-slate-200 rounded px-2 py-1.5 text-xs focus:outline-indigo-500">
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    async function saveSkinSettings() {
+        const btn = document.querySelector('button[onclick="saveSkinSettings()"]');
+        const originalHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> กำลังอัปโหลดและบันทึก...';
+
+        try {
+            const className = document.getElementById('skin-class-name').value.trim() || 'ทั่วไป';
+            const levelMilestones = [1];
+            for (let i = 5; i <= 95; i += 5) levelMilestones.push(i);
+            levelMilestones.push(99);
+
+            const skinsToSave = [];
+
+            // วนลูปประมวลผลทีละเลเวล
+            for (const lv of levelMilestones) {
+                const fileInput = document.getElementById(`skin-file-${lv}`);
+                const oldImgInput = document.getElementById(`skin-old-img-${lv}`);
+                const titleInput = document.getElementById(`skin-title-${lv}`);
+
+                let imgUrl = oldImgInput ? oldImgInput.value : '';
+                const title = titleInput ? titleInput.value.trim() : '';
+
+                // อัปโหลดรูปภาพใหม่ถ้ามีการเลือกไฟล์
+                if (fileInput && fileInput.files.length > 0) {
+                    const file = fileInput.files[0];
+                    const fileExt = file.name.split('.').pop();
+                    // สุ่มสตริงสั้นป้องกันชื่อไฟล์ชนกันเมื่อบันทึกหลายรูปพร้อมกัน
+                    const randomId = Math.random().toString(36).substring(2, 7);
+                    const fileName = `skin_lv${lv}_${Date.now()}_${randomId}.${fileExt}`;
+
+                    const { error: uploadError } = await supabaseClient
+                        .storage
+                        .from('items')
+                        .upload(fileName, file);
+
+                    if (uploadError) throw uploadError;
+
+                    const { data: publicUrlData } = supabaseClient.storage.from('items').getPublicUrl(fileName);
+                    imgUrl = publicUrlData.publicUrl;
+                }
+
+                // เก็บเฉพาะเลเวลที่มีรูปภาพหรือฉายา
+                if (imgUrl || title) {
+                    skinsToSave.push({
+                        character_class: className,
+                        level: lv,
+                        skin_url: imgUrl,
+                        title: title,
+                        updated_at: new Date().toISOString()
+                    });
+                }
+            }
+
+            // บันทึกด้วย upsert อิงตามคู่ character_class และ level
+            if (skinsToSave.length > 0) {
+                const { error: upsertError } = await supabaseClient
+                    .from('level_skins')
+                    .upsert(skinsToSave, { onConflict: 'character_class,level' });
+
+                if (upsertError) throw upsertError;
+            }
+
+            alert(`✅ บันทึกข้อมูลร่างพัฒนาสาย "${className}" เรียบร้อยแล้ว!`);
+            openSkinSettings(className);
+        } catch (err) {
+            console.error("Save Skin Error:", err);
+            alert('❌ เกิดข้อผิดพลาด: ' + err.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+        }
+    }
+    // ฟังก์ชันอัปเดตโปรไฟล์ รูปสกิน และฉายา ตามเลเวลปัจจุบัน
+async function updatePlayerProfileDisplay(currentLevel) {
+    
+    // 1. อัปเดตตัวเลขเลเวลให้ตรงตามจริงเสมอ (สมมติว่า id ของป้ายเลเวลคือ player-level)
+    if(document.getElementById('player-level')) {
+        document.getElementById('player-level').innerText = `Lv.${currentLevel}`;
+    }
+
+    try {
+        // 2. ดึงข้อมูลสกินทั้งหมดจาก Supabase
+        const { data: skins, error } = await supabaseClient.from('level_skins').select('*');
+        if (error) throw error;
+
+        if (skins && skins.length > 0) {
+            // 3. หาสกินที่เลเวล "น้อยกว่าหรือเท่ากับ" เลเวลปัจจุบันของเด็ก แล้วเอาอันที่เลเวลสูงสุด
+            // (เช่น ถ้าเด็กเวล 12 จะได้กรองได้ [1, 5, 10] และเลือก 10 มาใช้)
+            const applicableSkins = skins.filter(s => s.level <= currentLevel);
+            
+            if (applicableSkins.length > 0) {
+                // เรียงจากมากไปน้อย แล้วเอาตัวแรกสุด (ตัวล่าสุดที่ปลดล็อก)
+                applicableSkins.sort((a, b) => b.level - a.level);
+                const currentSkin = applicableSkins[0];
+
+                // 4. เปลี่ยนรูปโปรไฟล์ (ต้องใส่ id="player-avatar" ที่แท็ก <img> ของรูปนักเรียนด้วยนะครับ)
+                if(currentSkin.skin_url && document.getElementById('player-avatar')) {
+                    document.getElementById('player-avatar').src = currentSkin.skin_url;
+                }
+
+                // 5. เปลี่ยนฉายา (สมมติว่า id ของฉายาคือ player-class)
+                if(currentSkin.title && document.getElementById('player-class')) {
+                    document.getElementById('player-class').innerText = currentSkin.title;
+                }
+            }
+        }
+    } catch (err) {
+        console.error("โหลดสกินพลาด:", err);
+    }
+}
+
+// 1. ตัวแปรเก็บข้อมูลสกินทั้งหมด
+    let allLevelSkins = [];
+
+    // 2. ฟังก์ชันดึงข้อมูลสกินจากฐานข้อมูล (เรียกใช้ครั้งเดียวตอนโหลดหน้า)
+    async function loadLevelSkins() {
+        try {
+            const { data, error } = await supabaseClient
+                .from('level_skins')
+                .select('*')
+                .order('level', { ascending: true }); // เรียงจากน้อยไปมาก
+            
+            if (!error && data) {
+                allLevelSkins = data;
+                // ดึงเสร็จแล้ว สั่งอัปเดตหน้าจอทันที
+                if (currentStudent && currentStudent.exp) {
+                    updatePlayerAvatar(currentStudent.exp);
+                }
+            }
+        } catch (err) {
+            console.error("โหลดข้อมูลสกินพลาด:", err);
+        }
+    }
+
+    // 3. ฟังก์ชันคำนวณเลเวลและเปลี่ยนร่างตัวละคร
+    function updatePlayerAvatar(currentXp) {
+        // --- ส่วนที่ 1: สูตรคำนวณเลเวล ---
+        // (คุณครูสามารถปรับสูตรได้ตามใจชอบ เช่น XP ทุกๆ 100 = 1 เลเวล)
+        let currentLevel = Math.floor(currentXp / 100) + 1; 
+        
+        // --- ส่วนที่ 2: หาสกินที่ตรงกับเงื่อนไข ---
+        // ค่าเริ่มต้น (เผื่อยังไม่มีข้อมูล)
+        let currentSkin = { skin_url: '', title: 'นักผจญภัย' }; 
+        
+        if (allLevelSkins.length > 0) {
+            // กรองเอาเฉพาะจุดเช็คพอยต์ที่ "น้อยกว่าหรือเท่ากับ" เลเวลปัจจุบัน
+            const unlockedSkins = allLevelSkins.filter(skin => skin.level <= currentLevel);
+            
+            if (unlockedSkins.length > 0) {
+                // เลือกเอาข้อมูลล่าสุดที่ปลดล็อก (อันที่เลเวลสูงสุดในกลุ่ม)
+                currentSkin = unlockedSkins[unlockedSkins.length - 1];
+            }
+        }
+
+        // --- ส่วนที่ 3: อัปเดตขึ้นหน้าจอ ---
+        // 1. ตัวเลขเลเวล (เปลี่ยนไปเรื่อยๆ ตามจริง)
+        if(document.getElementById('player-level')) {
+            document.getElementById('player-level').innerText = "Lv." + currentLevel;
+        }
+        
+        // 2. ฉายา (เปลี่ยนเมื่อถึงกำหนด)
+        if(document.getElementById('player-class') && currentSkin.title) {
+            document.getElementById('player-class').innerText = currentSkin.title;
+        }
+
+        // 3. รูปสกิน (เปลี่ยนเมื่อถึงกำหนด)
+        const avatarImg = document.getElementById('player-avatar');
+        if(avatarImg && currentSkin.skin_url) {
+            avatarImg.src = currentSkin.skin_url;
+        }
+    }
+
 
 </script>
 </body>

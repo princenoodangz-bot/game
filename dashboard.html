@@ -10,6 +10,8 @@
 
 <!-- นำเข้า Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- เอฟเฟกต์พลุกระดาษตอนเลเวลอัป -->
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
 <!-- Google Fonts -->
 <link href="https://fonts.googleapis.com" rel="preconnect"/>
@@ -55,125 +57,150 @@
 <div class="w-full max-w-md bg-gradient-to-b from-[#1877F2] via-[#2196F3] to-[#42A5F5] min-h-screen relative pb-28 shadow-2xl flex flex-col overflow-x-hidden opacity-0 transition-opacity duration-500" id="main-content">
     
        
-        <!-- ================= Student Profile (ปรับใหม่ตามดีไซน์) ================= -->
-        <div class="flex items-center justify-between mb-5 mt-2">
+        <!-- ================= Student Profile ================= -->
+        <div class="flex items-center justify-between mb-5 mt-2 px-4 sm:px-6">
             
             <!-- ฝั่งซ้าย: โปรไฟล์ -->
             <div class="flex items-center">
-                <!-- รูปอวตาร และ เลเวล -->
+                <!-- รูปอวตาร -->
                 <div class="relative w-14 h-14 rounded-full border-2 border-yellow-400 bg-white p-0.5 shadow-sm">
-                    <!-- คุณครูสามารถเปลี่ยน 🎒 เป็น <img> ได้ในอนาคตครับ -->
-                    <div class="w-full h-full rounded-full bg-slate-100 flex items-center justify-center text-2xl">🎒</div>
+                    <!-- 🌟 ใส่ id="top-bar-avatar" ตรงนี้ 🌟 -->
+                    <div id="top-bar-avatar" class="w-full h-full rounded-full bg-slate-100 flex items-center justify-center text-2xl overflow-hidden">
+                        🎒
+                    </div>
                     
-                    <!-- ป้ายเลเวลทับขอบล่าง -->
+                    <!-- ส่วนเลเวล (มี id="player-level" อยู่แล้ว ถูกต้องครับ) -->
                     <div class="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-yellow-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full border border-white shadow-sm whitespace-nowrap">
                         <span id="player-level">Lv.1</span>
                     </div>
                 </div>
                 
                 <!-- ข้อมูลชื่อ -->
-                <div class="ml-3">
-                    <div class="flex items-center gap-2 mb-0.5">
-                        <h2 id="player-name" class="text-white font-extrabold text-base drop-shadow-sm">กำลังโหลด...</h2>
-                        <!-- ป้ายห้องเรียน (ยึดตามดีไซน์สีน้ำเงินเข้มโปร่งแสง) -->
-                        <span id="player-class" class="bg-blue-900/40 text-blue-100 text-[10px] font-bold px-2 py-0.5 rounded-md backdrop-blur-sm">--</span>
-                    </div>
-                    <p class="text-blue-100 text-[11px] drop-shadow-sm">
-                        รหัส: <span id="player-code">----</span> • <span id="player-title">นักผจญภัย</span>
+                <div class="flex-1">
+                    <h1 class="text-lg font-black text-white leading-tight drop-shadow-md flex items-center gap-2">
+                        <span id="player-name">กำลังโหลด...</span>
+                        <!-- 🌟 ป้ายข้างชื่อ (โชว์สายตัวละคร เช่น นักรบ, นักเวท) -->
+                        <span id="player-character-class" class="text-[10px] bg-blue-900/40 text-blue-50 px-2 py-0.5 rounded-lg border border-blue-400/30 shadow-sm backdrop-blur-sm">ทั่วไป</span>
+                    </h1>
+                    <p class="text-xs text-blue-100/90 font-medium mt-0.5 drop-shadow-sm">
+                        รหัส: <span id="player-code">----</span> • <span id="player-title">นักผจญภัย</span> <!-- 🌟 จุดที่แสดงฉายา -->
                     </p>
                 </div>
             </div>
 
-            <!-- ฝั่งขวา: ปุ่มกระดิ่ง & ตั้งค่า -->
+            <!-- ฝั่งขวา: ปุ่มกระดิ่ง & ตั้งค่า (เพิ่มขอบสีอ่อน) -->
             <div class="flex items-center gap-2">
-                <!-- ปุ่มแจ้งเตือน (มีจุดสีแดง) -->
-                <button class="w-9 h-9 rounded-full bg-blue-500/30 hover:bg-blue-500/50 text-white flex items-center justify-center relative transition backdrop-blur-sm shadow-inner">
+                <button class="w-9 h-9 rounded-full bg-blue-500/30 hover:bg-blue-500/50 text-white flex items-center justify-center relative transition backdrop-blur-sm shadow-inner border border-white/30">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
-                    <span class="absolute top-2 right-2.5 w-2 h-2 bg-rose-500 border border-blue-500 rounded-full"></span>
+                    <span class="absolute top-2 right-2.5 w-2 h-2 bg-rose-500 border border-white rounded-full"></span>
                 </button>
-                <!-- ปุ่มตั้งค่า/ออกระบบ -->
-                <button onclick="logout()" class="w-9 h-9 rounded-full bg-blue-500/30 hover:bg-blue-500/50 text-white flex items-center justify-center transition backdrop-blur-sm shadow-inner" title="ออกจากระบบ">
+                <button onclick="logout()" class="w-9 h-9 rounded-full bg-blue-500/30 hover:bg-blue-500/50 text-white flex items-center justify-center transition backdrop-blur-sm shadow-inner border border-white/30" title="ออกจากระบบ">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                 </button>
             </div>
-
         </div>
 
-        <!-- ================= แถบสถานะ 4 ช่อง (ทรงแคปซูล ปรับให้เหมือนดีไซน์เป๊ะ) ================= -->
-        <div class="flex items-center justify-between gap-1.5 sm:gap-2 mb-6 w-full">
+        <!-- ================= แถบสถานะ 4 ช่อง (เพิ่มขอบสีอ่อน border-white/30) ================= -->
+        <div class="flex items-center justify-between gap-1.5 sm:gap-2 mb-6 w-full px-4 sm:px-6">
             
-            <!-- 1. สายฟ้า ⚡ -->
-            <div class="flex-1 bg-blue-900/40 rounded-full py-1.5 flex items-center justify-center gap-1.5 shadow-inner border border-white/5">
+            <div class="flex-1 bg-blue-900/40 rounded-full py-1.5 flex items-center justify-center gap-1.5 shadow-inner border border-white/30">
                 <span class="text-orange-400 text-sm drop-shadow-md">⚡</span>
                 <span id="player-energy" class="text-[11px] sm:text-xs font-bold text-white tracking-wide">--/100</span>
             </div>
             
-            <!-- 2. เหรียญทอง 🪙 -->
-            <div class="flex-1 bg-blue-900/40 rounded-full py-1.5 flex items-center justify-center gap-1.5 shadow-inner border border-white/5">
+            <div class="flex-1 bg-blue-900/40 rounded-full py-1.5 flex items-center justify-center gap-1.5 shadow-inner border border-white/30">
                 <span class="text-yellow-400 text-sm drop-shadow-md">🪙</span>
                 <span id="player-coins" class="text-[11px] sm:text-xs font-bold text-white tracking-wide">0</span>
             </div>
 
-            <!-- 3. เพชร 💎 -->
-            <div class="flex-1 bg-blue-900/40 rounded-full py-1.5 flex items-center justify-center gap-1.5 shadow-inner border border-white/5">
+            <div class="flex-1 bg-blue-900/40 rounded-full py-1.5 flex items-center justify-center gap-1.5 shadow-inner border border-white/30">
                 <span class="text-cyan-400 text-sm drop-shadow-md">💎</span>
                 <span id="player-diamonds" class="text-[11px] sm:text-xs font-bold text-white tracking-wide">0</span>
             </div>
 
-            <!-- 4. ดาว (EXP) ⭐ -->
-            <div class="flex-1 bg-blue-900/40 rounded-full py-1.5 flex items-center justify-center gap-1.5 shadow-inner border border-white/5">
+            <div class="flex-1 bg-blue-900/40 rounded-full py-1.5 flex items-center justify-center gap-1.5 shadow-inner border border-white/30">
                 <span class="text-yellow-400 text-sm drop-shadow-md">⭐</span>
                 <span id="player-exp-text" class="text-[11px] sm:text-xs font-bold text-white tracking-wide">0</span>
             </div>
 
         </div>
 
+        <!-- ================= พื้นที่หลัก (แบนเนอร์ภารกิจ & รางวัล) ================= -->
         <main class="flex-1 px-4 pt-3 space-y-4">
             
             <!-- Weekly Event (กิจกรรมพิเศษประจำสัปดาห์ แบบดึงข้อมูลอัตโนมัติ) -->
-            <section aria-label="กิจกรรมพิเศษประจำสัปดาห์" class="mb-6">
+            <section aria-label="กิจกรรมพิเศษประจำสัปดาห์">
                 
-                <!-- 🌟 แบนเนอร์ที่มีภารกิจ -->
+                <!-- 🌟 แบนเนอร์ที่มีภารกิจ (ดีไซน์ใหม่) -->
                 <a href="#" id="quest-banner-link" class="block relative overflow-hidden rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 p-4 text-white shadow-lg border-2 border-yellow-300/60 transition-transform transform hover:scale-[1.02] active:scale-95 cursor-pointer hidden">
                     
+                    <!-- ไอคอนถ้วยรางวัลจางๆ พื้นหลัง -->
                     <div class="absolute -right-6 -bottom-6 text-7xl opacity-20 select-none pointer-events-none">🏆</div>
                     
-                    <div class="relative z-10 max-w-[80%]">
-                        <span class="inline-block bg-yellow-300 text-amber-950 text-[10px] font-black px-2 py-0.5 rounded-md uppercase tracking-wider mb-1">
-                            ⚡ <span id="quest-banner-tag">ศึกประจำสัปดาห์</span>
-                        </span>
+                    <div class="relative z-10 w-full">
+                        <!-- ส่วนหัว: ป้ายกำกับ 2 ฝั่ง -->
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="inline-flex items-center bg-yellow-300 text-amber-950 text-[10px] font-black px-2 py-0.5 rounded-md uppercase tracking-wider">
+                                ⚡ <span id="quest-banner-tag" class="ml-1">ศึกประจำสัปดาห์</span>
+                            </span>
+                            <span id="quest-banner-time" class="bg-black/20 text-white text-[10px] font-bold px-2 py-1 rounded-full backdrop-blur-sm shadow-sm">
+                                กำลังคำนวณ...
+                            </span>
+                        </div>
                         
-                        <h2 id="quest-banner-title" class="text-base font-extrabold leading-tight drop-shadow-sm">
+                        <!-- ชื่อภารกิจ -->
+                        <h2 id="quest-banner-title" class="text-base sm:text-lg font-extrabold leading-tight drop-shadow-sm mb-1 line-clamp-2">
                             กำลังโหลดภารกิจ...
                         </h2>
                         
-                        <p id="quest-banner-desc" class="text-xs text-orange-100 mt-1 line-clamp-1">
+                        <!-- รายละเอียดภารกิจ -->
+                        <p id="quest-banner-desc" class="text-[11px] text-orange-50 line-clamp-1 mb-4">
                             โปรดรอสักครู่...
                         </p>
+
+                        <!-- ส่วนล่าง: คนเข้าร่วม & ปุ่มเริ่มเลย -->
+                        <div class="flex justify-between items-end mt-2">
+                            <div class="flex items-center">
+                                <div class="flex -space-x-2 mr-2">
+                                    <div class="w-6 h-6 rounded-full bg-emerald-400 border border-white flex items-center justify-center text-[10px] shadow-sm">🎮</div>
+                                    <div class="w-6 h-6 rounded-full bg-blue-400 border border-white flex items-center justify-center text-[10px] shadow-sm">🦊</div>
+                                    <div class="w-6 h-6 rounded-full bg-pink-400 border border-white flex items-center justify-center text-[10px] shadow-sm">🐻</div>
+                                </div>
+                                <span id="quest-banner-participants" class="text-[9px] text-white/90 font-medium drop-shadow-sm">ร่วมสู้แล้ว 0 คน</span>
+                            </div>
+                            
+                            <div class="bg-yellow-400 hover:bg-yellow-300 text-amber-900 text-xs font-black px-4 py-1.5 rounded-full shadow-md flex items-center gap-1.5 transition">
+                                เริ่มเลย <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                            </div>
+                        </div>
                     </div>
                 </a>
                 
                 <!-- 🌟 กล่องสำหรับแสดงถ้าไม่มีภารกิจ -->
                 <div id="no-quest-banner" class="w-full bg-slate-800/40 border border-slate-700/50 rounded-2xl p-4 text-center text-slate-400 text-xs hidden">
-                    สัปดาห์นี้ยังไม่มีภารกิจพิเศษ พักผ่อนให้เต็มที่นะ!
+                    ไม่มีภารกิจใหม่ พักผ่อนได้เลย! 🎉
                 </div>
                 
             </section>
-            
+
             <!-- 🎁 กล่องรับรางวัลรายวัน -->
-            <div id="daily-reward-container" class="bg-gradient-to-r from-emerald-400 to-teal-500 rounded-2xl p-4 mt-4 shadow-lg text-white relative overflow-hidden hidden">
-                <div class="absolute -right-4 -top-4 text-6xl opacity-20 transform rotate-12">🎁</div>
+            <div id="daily-reward-container" class="bg-gradient-to-r from-emerald-400 to-teal-500 rounded-2xl p-4 shadow-lg text-white relative overflow-hidden hidden border border-emerald-300">
+                
+                <!-- 🌟 ภาพกล่องของขวัญจางๆ พื้นหลัง -->
+                <div class="absolute -right-3 -bottom-3 text-[80px] opacity-25 transform -rotate-12 pointer-events-none select-none drop-shadow-md">
+                    🎁
+                </div>
+                
                 <div class="flex justify-between items-center relative z-10">
                     <div>
                         <h3 class="font-bold text-base mb-1 shadow-sm">เช็คอินประจำวัน</h3>
-                        <p class="text-xs text-emerald-50">รับฟรี <span class="font-bold text-yellow-200">+20 XP</span> และ <span class="font-bold text-yellow-200">+5 เหรียญ</span> 💰</p>
+                        <p class="text-xs text-emerald-50 drop-shadow-sm">รับฟรี <span class="font-bold text-yellow-200">+20 XP</span> และ <span class="font-bold text-yellow-200">+5 เหรียญ</span> 💰</p>
                     </div>
-                    <button onclick="claimDailyReward()" id="btn-claim-reward" class="bg-white text-teal-600 font-bold py-2 px-4 rounded-xl shadow-md hover:bg-teal-50 hover:scale-105 transition active:scale-95 text-sm">
+                    <button onclick="claimDailyReward()" id="btn-claim-reward" class="bg-white text-teal-600 font-bold py-2 px-4 rounded-xl shadow-md hover:bg-teal-50 hover:scale-105 transition active:scale-95 text-sm border-b-2 border-slate-200">
                         กดรับเลย!
                     </button>
                 </div>
             </div>
-        
 
         <!-- หมวดหมู่วิชา -->
         <section aria-label="หมวดหมู่วิชา" class="-mx-4 px-4 overflow-x-auto no-scrollbar py-1">
@@ -509,7 +536,52 @@
         </div>
     </div>
 </div>
+        <!-- 🌟 Modal เฉลิมฉลองเลเวลอัป 🌟 -->
+<div id="modal-level-up" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[200] hidden flex items-center justify-center p-4 transition-all">
+    <div class="relative bg-gradient-to-b from-indigo-900 via-slate-900 to-slate-950 w-full max-w-sm rounded-3xl p-6 text-center text-white border-2 border-amber-400/80 shadow-[0_0_50px_rgba(251,191,36,0.3)] animate-bounce-short">
+        
+        <!-- แสงประกายด้านหลัง -->
+        <div class="absolute -top-12 left-1/2 -translate-x-1/2 text-7xl select-none animate-pulse">
+            👑
+        </div>
 
+        <!-- หัวข้อ -->
+        <div class="mt-4 mb-2">
+            <span class="inline-block bg-gradient-to-r from-amber-400 to-yellow-300 text-slate-950 text-xs font-black px-4 py-1 rounded-full uppercase tracking-wider shadow-md">
+                LEVEL UP!
+            </span>
+            <h2 class="text-2xl font-black mt-2 bg-gradient-to-r from-yellow-200 via-amber-300 to-yellow-400 bg-clip-text text-transparent drop-shadow">
+                ยินดีด้วย เลเวลอัปแล้ว!
+            </h2>
+        </div>
+
+        <!-- วงแหวนแสดงเลเวลใหม่ -->
+        <div class="my-4 flex justify-center">
+            <div class="relative w-28 h-28 rounded-full bg-gradient-to-tr from-amber-500 to-yellow-300 p-1 shadow-lg shadow-amber-500/30">
+                <div class="w-full h-full rounded-full bg-slate-900 flex flex-col items-center justify-center overflow-hidden border-2 border-white/20">
+                    <div id="levelup-avatar-preview" class="w-16 h-16 flex items-center justify-center">
+                        <!-- รูปตัวละคร -->
+                    </div>
+                </div>
+                <div class="absolute -bottom-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black text-sm px-3 py-0.5 rounded-full border border-yellow-200 shadow-md">
+                    <span id="levelup-number">Lv.0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ฉายาใหม่ -->
+        <div class="bg-white/10 rounded-2xl p-3 mb-5 border border-white/10">
+            <p class="text-[11px] text-amber-200 font-semibold">ฉายาปัจจุบันของคุณ</p>
+            <p id="levelup-title" class="text-base font-extrabold text-white mt-0.5">นักผจญภัย</p>
+            <p id="levelup-class-badge" class="text-[10px] text-slate-300 mt-1">สายอาชีพ: ทั่วไป</p>
+        </div>
+
+        <!-- ปุ่มกดปิดเพื่อลุยต่อ -->
+        <button onclick="closeLevelUpModal()" class="w-full bg-gradient-to-r from-amber-400 to-yellow-400 hover:from-amber-300 hover:to-yellow-300 text-slate-950 font-black py-3 rounded-2xl shadow-lg shadow-amber-400/30 transition transform hover:scale-[1.02] active:scale-95 text-sm flex items-center justify-center gap-2">
+            <span>ลุยต่อเลย! 🚀</span>
+        </button>
+    </div>
+</div>
 
 <!-- ================= JAVASCRIPT ================= -->
 <script>
@@ -538,10 +610,11 @@
             if(document.getElementById('player-name')) document.getElementById('player-name').innerText = currentStudent.first_name || 'นักเรียน';
             if(document.getElementById('player-class')) document.getElementById('player-class').innerText = currentStudent.class_room || '';
             if(document.getElementById('player-code')) document.getElementById('player-code').innerText = currentStudent.student_code || '';
-
+            
             // 3. โหลดคะแนน และ เกม
             await fetchTotalXP(currentStudent.id);
             await fetchGames();
+            await loadActiveQuest();
             
             // 🌟 4. เรียกใช้ฟังก์ชันรางวัลและสกิน (ย้ายมาไว้ตรงนี้) 🌟
             if (typeof checkDailyReward === 'function') {
@@ -569,7 +642,6 @@
         }
     });
 
-    // --- ฟังก์ชันดึงข้อมูลล่าสุดจากฐานข้อมูล (คะแนน, สกิน, ไอเทมสวมใส่) ---
     async function fetchTotalXP(studentId) {
         try {
             const { data, error } = await supabaseClient
@@ -579,17 +651,57 @@
                 .single();
 
             if (data && !error) {
+                // 🌟 ระบบคำนวณฟื้นฟูสายฟ้าอัตโนมัติ (5 หน่วย ต่อ 1 ชั่วโมง) 🌟
+                let currentEnergy = data.energy !== undefined ? data.energy : 100;
+                let lastUpdate = data.last_energy_update;
+                let needsUpdateToDB = false;
+
+                // ถ้าสายฟ้าน้อยกว่า 100 และมีบันทึกเวลาล่าสุดไว้
+                if (currentEnergy < 100 && lastUpdate) {
+                    const now = new Date();
+                    const past = new Date(lastUpdate);
+                    const diffMs = now - past;
+                    const diffHours = Math.floor(diffMs / (1000 * 60 * 60)); // คำนวณว่าผ่านไปกี่ชั่วโมงเต็ม
+
+                    if (diffHours > 0) {
+                        const energyGained = diffHours * 5; // ได้คืน 5 หน่วยต่อ 1 ชั่วโมง
+                        currentEnergy = Math.min(100, currentEnergy + energyGained); // รวมแล้วต้องไม่เกิน 100
+                        
+                        // ขยับเวลาเริ่มต้นใหม่ ตามจำนวนชั่วโมงที่ฟื้นฟูไปแล้ว (เพื่อเก็บเศษนาทีไว้คำนวณต่อ)
+                        past.setHours(past.getHours() + diffHours);
+                        lastUpdate = past.toISOString();
+                        needsUpdateToDB = true;
+                    }
+                }
+
                 currentStudent = data;
+                currentStudent.energy = currentEnergy; // อัปเดตค่าให้ตรงกับที่คำนวณ
+
+                // ถ้ามีการฟื้นฟูสายฟ้า ให้ส่งข้อมูลไปอัปเดตบน Supabase แบบเบื้องหลัง
+                if (needsUpdateToDB) {
+                    supabaseClient.from('students').update({
+                        energy: currentEnergy,
+                        last_energy_update: lastUpdate
+                    }).eq('id', studentId).then(); // ไม่ต้องใส่ await เพื่อให้หน้าเว็บโหลดต่อได้เลย ไม่ต้องรอ
+                }
+
                 localStorage.setItem('schoolquest_student', JSON.stringify(currentStudent));
 
+                // 🌟 อัปเดตข้อมูลขึ้นหน้าจอ 🌟
                 const totalXP = data.xp || 0;
                 const totalCoins = data.coins || 0;
 
                 if(document.getElementById('player-xp')) document.getElementById('player-xp').innerText = totalXP.toLocaleString();
                 if(document.getElementById('player-coins')) document.getElementById('player-coins').innerText = totalCoins.toLocaleString();
 
-                const level = Math.floor(totalXP / 500) + 1;
-                if(document.getElementById('player-level')) document.getElementById('player-level').innerText = `Lv.${level}`;
+                // ลบการคำนวณเลเวลแบบเก่าทิ้ง แล้วเรียกใช้ฟังก์ชันใหม่แทน
+                updateExperienceUI(totalXP);
+                
+                
+                // โชว์ตัวเลขสายฟ้าที่คำนวณเสร็จแล้ว
+                if(document.getElementById('player-energy')) {
+                    document.getElementById('player-energy').innerText = `${currentEnergy}/100`;
+                }
                 
                 if (typeof updateAvatarUI === 'function') {
                     updateAvatarUI();
@@ -931,8 +1043,14 @@
                 let btnHtml = '';
                 
                 if (!submission) {
-                    // ยังไม่เคยกดรับรางวัล
-                    btnHtml = `<button onclick="claimQuest('${quest.id}', '${quest.quest_name}', ${quest.reward_coins}, ${quest.reward_xp})" class="bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-white text-[10px] font-bold py-2 px-4 rounded-xl shadow-md transition active:scale-95 flex items-center gap-1">🎯 รับรางวัล</button>`;
+                    // ยังไม่เคยกดรับรางวัล: เช็คว่าผูกกับเกมไว้หรือไม่
+                    if (quest.games && quest.games.game_url) {
+                        // 🌟 1. แบบผูกกับเกม: บังคับให้เข้าเล่นเกม (หักสายฟ้าปกติ)
+                        btnHtml = `<button onclick="playGame('${quest.games.game_url}?quest_id=${quest.id}')" class="bg-blue-500 hover:bg-blue-600 text-white text-[10px] font-bold py-2 px-4 rounded-xl shadow-md transition active:scale-95 flex items-center gap-1 border-b-2 border-blue-700">🎮 เล่นเกมเพื่อรับรางวัล</button>`;
+                    } else {
+                        // 🌟 2. แบบไม่ผูกกับเกม: ภารกิจทั่วไป กดรับรางวัลได้เลย
+                        btnHtml = `<button onclick="claimQuest('${quest.id}', '${quest.quest_name}', ${quest.reward_coins}, ${quest.reward_xp})" class="bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-white text-[10px] font-bold py-2 px-4 rounded-xl shadow-md transition active:scale-95 flex items-center gap-1 border-b-2 border-amber-600">🎯 รับรางวัล</button>`;
+                    }
                 } else {
                     // รับไปแล้ว
                     btnHtml = `<button disabled class="bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-bold py-1.5 px-3 rounded-xl shadow-sm cursor-not-allowed opacity-80">✅ ผ่านแล้ว</button>`;
@@ -962,6 +1080,7 @@
         }
     }
     // ==========================================
+    // ==========================================
     // 🌟 ระบบแบนเนอร์ ภารกิจประจำสัปดาห์ 🌟
     // ==========================================
     async function loadActiveQuest() {
@@ -970,10 +1089,10 @@
         if (!bannerLink || !noBanner) return;
 
         try {
-            // ดึงภารกิจล่าสุดที่กำลังเปิดใช้งาน
+            // ดึงภารกิจล่าสุดที่เปิดใช้งาน พร้อมดึง URL ของเกมที่ถูกผูกไว้
             const { data: questData, error } = await supabaseClient
                 .from('quests')
-                .select('*')
+                .select('*, games(game_url)') 
                 .eq('is_active', true)
                 .order('created_at', { ascending: false })
                 .limit(1)
@@ -984,12 +1103,36 @@
                 document.getElementById('quest-banner-title').innerText = questData.quest_name || 'ภารกิจพิเศษ';
                 document.getElementById('quest-banner-desc').innerText = questData.description || `รวมพลังเพื่อนๆ แลกรับตราเกียรติยศและ ${questData.reward_xp || 0} XP`;
                 
-                // จัดการลิงก์เมื่อเด็กกดคลิกแบนเนอร์
-                if (questData.game_url) {
-                    bannerLink.href = `${questData.game_url}?student_id=${currentStudent ? currentStudent.id : ''}&quest_id=${questData.id}`;
+                // 🌟 ระบบคำนวณเวลาถอยหลัง (เพิ่มเข้ามาใหม่) 🌟
+                let timeText = 'ไม่จำกัดเวลา';
+                if (questData.end_date) {
+                    const endDate = new Date(questData.end_date);
+                    const now = new Date();
+                    const diffMs = endDate - now;
+                    if (diffMs > 0) {
+                        const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+                        timeText = `เหลืออีก ${diffDays} วัน`;
+                    } else {
+                        timeText = 'หมดเวลาแล้ว';
+                    }
+                }
+                if(document.getElementById('quest-banner-time')) {
+                    document.getElementById('quest-banner-time').innerText = timeText;
+                }
+                
+                // 🌟 อัปเดตจำนวนคนเข้าร่วม (เพิ่มเข้ามาใหม่) 🌟
+                if(document.getElementById('quest-banner-participants')) {
+                    document.getElementById('quest-banner-participants').innerText = `ร่วมสู้แล้ว ${questData.participant_count || 0} คน`;
+                }
+
+                // ตรวจสอบว่าภารกิจนี้ผูกกับเกมไว้หรือไม่
+                const gameUrl = questData.games ? questData.games.game_url : null;
+
+                if (gameUrl) {
+                    bannerLink.href = `${gameUrl}?student_id=${currentStudent ? currentStudent.id : ''}&quest_id=${questData.id}`;
                     bannerLink.onclick = (e) => {
                         e.preventDefault();
-                        playGame(`${questData.game_url}?quest_id=${questData.id}`);
+                        playGame(`${gameUrl}?quest_id=${questData.id}`);
                     };
                 } else {
                     bannerLink.href = "#"; 
@@ -1063,8 +1206,8 @@
             localStorage.setItem('schoolquest_student', JSON.stringify(currentStudent));
             
             if(document.getElementById('player-coins')) document.getElementById('player-coins').innerText = newCoins.toLocaleString();
-            if(document.getElementById('player-xp')) document.getElementById('player-xp').innerText = newXp.toLocaleString();
-            document.getElementById('player-level').innerText = `Lv.${Math.floor(newXp / 500) + 1}`;
+            updateExperienceUI(newXp);
+            
 
             // แสดงหน้าต่างยินดี
             if (isJackpot) {
@@ -1097,7 +1240,7 @@
         
         try {
             // 1. คำนวณเลเวลของนักเรียน
-            let currentTotalXP = currentStudent.exp || 0;
+            let currentTotalXP = currentStudent.xp || 0;
             let playerLevel = 1;
             let xpNeeded = 500;
             let accumulatedXP = 0;
@@ -1286,9 +1429,10 @@
 
                 const encodedItem = encodeURIComponent(JSON.stringify(item));
                 
+                // เปลี่ยนจากเดิมเป็นแบบนี้ เพื่อส่ง item.item_name (เช่น "นักเวท") ไปด้วย
                 let actionBtn = item.item_type === 'avatar' 
-                    ? `<button onclick="changeAvatar('${item.image_icon || ''}')" class="mt-2 w-full bg-indigo-500 hover:bg-indigo-600 text-white text-[9px] py-1.5 rounded-lg font-bold">✨ ใช้ร่างนี้</button>`
-                    : `<button onclick="openSlotSelector('${encodedItem}')" class="mt-2 w-full bg-amber-500 hover:bg-amber-600 text-white text-[9px] py-1.5 rounded-lg font-bold">⚔️ สวมใส่</button>`;
+                ? `<button onclick="changeAvatar('${item.image_icon || ''}', '${item.item_name}')" class="mt-2 w-full bg-indigo-500 hover:bg-indigo-600 text-white text-[9px] py-1.5 rounded-lg font-bold">✨ ใช้ร่างนี้</button>`
+                : `<button onclick="openSlotSelector('${encodedItem}')" ...`; // (โค้ดบรรทัดล่างปล่อยไว้เหมือนเดิม)
 
                 // 🟢 คำนวณราคาขาย (ลด 70% คือได้คืน 30%)
                 const sellPrice = Math.floor((item.price_coins || 0) * 0.3);
@@ -1342,54 +1486,46 @@
     // ระบบเปลี่ยนรูปโปรไฟล์ (Avatar System)
     // ==========================================
 
-    // ฟังก์ชันสำหรับอัปเดตหน้าตาของโปรไฟล์ (รองรับทั้งรูป URL และ Emoji)
-    // ฟังก์ชันสำหรับอัปเดตหน้าตาของโปรไฟล์ (รองรับทั้งรูป URL และ Emoji)
+    // ฟังก์ชันสำหรับอัปเดตหน้าตาของโปรไฟล์ (รวมศูนย์การทำงานไปที่ updatePlayerAvatar)
     function updateAvatarUI() {
-        const avatarDiv = document.getElementById('profile-avatar'); // กรอบใหญ่ตรงกลางหน้าโปรไฟล์
-        const topBarAvatarDiv = document.querySelector('header .w-12.h-12.rounded-full'); // กรอบเล็กมุมซ้ายบน
-
-        const avatarData = currentStudent.avatar_image || '👦🏻'; 
-        
-        let topBarHtml = '';
-        let profileHtml = '';
-        
-        if (avatarData.startsWith('http')) {
-            // 1. แบบของมุมซ้ายบน (วงกลม)
-            topBarHtml = `<img src="${avatarData}" class="w-full h-full object-cover rounded-full transform scale-125">`;
-            
-            // 2. 🟢 แบบของหน้าโปรไฟล์กลางจอ (ตัวใหญ่ เต็มตัว โชว์ออร่า ไม่มีกรอบวงกลม)
-            profileHtml = `<img src="${avatarData}" class="w-full h-full object-contain drop-shadow-xl transform hover:scale-105 transition duration-300">`;
-        } else {
-            // ถ้าเป็น Emoji
-            topBarHtml = avatarData;
-            profileHtml = `<span class="text-7xl drop-shadow-md">${avatarData}</span>`;
+        if (currentStudent && typeof updatePlayerAvatar === 'function') {
+            updatePlayerAvatar(currentStudent.xp || currentStudent.xp || 0);
         }
-
-        if (avatarDiv) avatarDiv.innerHTML = profileHtml;
-        if (topBarAvatarDiv) topBarAvatarDiv.innerHTML = topBarHtml;
     }
 
     // ฟังก์ชันเมื่อเด็กกดปุ่ม "✨ ใช้ร่างนี้" จากในกระเป๋า
-    async function changeAvatar(avatarData) {
-        if (!confirm('ต้องการเปลี่ยนร่างเป็นตัวละครนี้ใช่หรือไม่?')) return;
+    async function changeAvatar(avatarData, className = 'ทั่วไป') {
+        if (!confirm(`ต้องการเปลี่ยนสายการต่อสู้เป็น "${className}" ใช่หรือไม่?`)) return;
 
         try {
-            // 1. เซฟลงฐานข้อมูล
+            // 1. เซฟรูปร่างและ "สายตัวละคร" ลงฐานข้อมูล Supabase
             const { error } = await supabaseClient
                 .from('students')
-                .update({ avatar_image: avatarData })
+                .update({ 
+                    avatar_image: avatarData,
+                    character_class: className // 🌟 อัปเดตสายตัวละครลง DB
+                })
                 .eq('id', currentStudent.id);
 
             if (error) throw error;
 
             // 2. เซฟลงในเครื่อง (LocalStorage)
             currentStudent.avatar_image = avatarData;
+            currentStudent.character_class = className; // 🌟 จำสายตัวละครไว้ในเครื่อง
             localStorage.setItem('schoolquest_student', JSON.stringify(currentStudent));
             
-            // 3. เปลี่ยนรูปหน้าเว็บทันที
-            updateAvatarUI();
+            // 3. เปลี่ยนรูปหน้าเว็บทันที (อัปเดต UI พื้นฐาน)
+            if (typeof updateAvatarUI === 'function') {
+                updateAvatarUI();
+            }
             
-            alert('🎉 เปลี่ยนสกินตัวละครเรียบร้อยแล้ว หล่อเท่สุดๆ!');
+            // 4. สั่งคำนวณสกินและฉายาใหม่ทันทีตามสายที่เลือก (ดึงสกินร่างอัปเกรดตามเลเวล)
+                if (typeof updatePlayerAvatar === 'function') {
+                    // ให้แน่ใจว่าส่ง currentStudent.xp ไป
+                    updatePlayerAvatar(currentStudent.xp || 0); 
+            }
+            
+            alert(`🎉 เปลี่ยนสายเป็น "${className}" เรียบร้อยแล้ว หล่อเท่สุดๆ!`);
         } catch (err) {
             alert('❌ เปลี่ยนตัวละครไม่สำเร็จ: ' + err.message);
         }
@@ -1710,7 +1846,7 @@
 
     // 2. ฟังก์ชันโหลดกล่องเกม (สมมติชื่อ loadGames)
     async function loadGames() {
-        const playerLevel = calculatePlayerLevel(currentStudent.exp); // 🟢 หาเลเวลของเด็กคนนี้
+        const playerLevel = calculatePlayerLevel(currentStudent.xp); // 🟢 หาเลเวลของเด็กคนนี้
         
         const { data: games } = await supabaseClient.from('games').select('*');
         const container = document.getElementById('games-container'); // ช่องใส่ด่าน
@@ -1772,62 +1908,68 @@
         }
     }
 
-    // 2. ฟังก์ชันเมื่อเด็กกดปุ่มรับของ
     async function claimDailyReward() {
-        const btnClaim = document.getElementById('btn-claim-reward');
-        btnClaim.disabled = true;
-        btnClaim.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> กำลังรับ...';
+        const btn = document.getElementById('btn-claim-reward');
+        if (!btn || !currentStudent) return;
 
-        const today = new Date().toISOString().split('T')[0];
-        const rewardXP = 20; // แก้ไข XP ที่อยากแจกได้ตรงนี้
-        const rewardCoins = 5; // แก้ไข เหรียญ ที่อยากแจกได้ตรงนี้
+        btn.disabled = true;
+        btn.innerText = 'กำลังรับรางวัล...';
 
         try {
-            // เช็คกับฐานข้อมูลอีกรอบ ป้องกันเด็กแฮก
-            const { data: student, error: fetchErr } = await supabaseClient
+            // รางวัลเช็คอิน: เหรียญ +5, XP +20
+            const rewardCoins = 5;
+            const rewardXP = 20;
+
+            // 1. ดึงคะแนนเดิมจากฐานข้อมูลล่าสุด ป้องกันข้อมูลคลาดเคลื่อน
+            const { data: studentDb, error: fetchErr } = await supabaseClient
                 .from('students')
-                .select('exp, coins, last_login_reward')
+                .select('coins, xp')
                 .eq('id', currentStudent.id)
                 .single();
 
             if (fetchErr) throw fetchErr;
 
-            if (student.last_login_reward === today) {
-                alert("วันนี้หนูรับรางวัลไปแล้วจ้า พรุ่งนี้มาใหม่น้า! 😅");
-                document.getElementById('daily-reward-container').classList.add('hidden');
-                return;
-            }
+            const newCoins = (studentDb.coins || 0) + rewardCoins;
+            const newXP = (studentDb.xp || 0) + rewardXP;
+            const todayStr = new Date().toISOString().split('T')[0];
 
-            const newExp = (student.exp || 0) + rewardXP;
-            const newCoins = (student.coins || 0) + rewardCoins;
-
-            // อัปเดตฐานข้อมูล
+            // 2. บันทึกลงตาราง students (ใช้ฟิลด์ xp และ coins อย่างถูกต้อง)
             const { error: updateErr } = await supabaseClient
                 .from('students')
-                .update({ exp: newExp, coins: newCoins, last_login_reward: today })
+                .update({
+                    coins: newCoins,
+                    xp: newXP,
+                    last_login_reward: todayStr
+                })
                 .eq('id', currentStudent.id);
 
             if (updateErr) throw updateErr;
 
-            // อัปเดตข้อมูลบนหน้าจอ
-            currentStudent.exp = newExp;
+            // 3. อัปเดตข้อมูลใน LocalStorage
             currentStudent.coins = newCoins;
-            currentStudent.last_login_reward = today;
+            currentStudent.xp = newXP;
+            localStorage.setItem('schoolquest_student', JSON.stringify(currentStudent));
 
-            // ⚠️ คุณครูอาจจะต้องเช็ค ID ตรงนี้ให้ตรงกับตัวโชว์เหรียญ/XP บนหน้าแดชบอร์ดนะครับ
-            if (document.getElementById('player-coins')) document.getElementById('player-coins').innerText = newCoins.toLocaleString();
-            if (document.getElementById('player-exp')) document.getElementById('player-exp').innerText = newExp.toLocaleString();
+            // 4. อัปเดต UI ยอดเหรียญบนหน้าจอ
+            const coinEl = document.getElementById('player-coins');
+            if (coinEl) coinEl.innerText = newCoins.toLocaleString();
 
-            alert(`🎉 เยี่ยมมาก! ได้รับ +${rewardXP} XP และ +${rewardCoins} เหรียญ`);
-            
-            // ซ่อนกล่องรางวัลไปเลย จนกว่าจะถึงพรุ่งนี้
-            document.getElementById('daily-reward-container').classList.add('hidden');
+            // 5. ส่งคะแนน XP รวมทั้งหมด (500,000+) เข้าไปคำนวณเลเวลใหม่
+            if (typeof updateExperienceUI === 'function') {
+                updateExperienceUI(newXP);
+            }
+
+            // 6. ซ่อนกล่องรับรางวัลรายวัน
+            const rewardContainer = document.getElementById('daily-reward-container');
+            if (rewardContainer) rewardContainer.classList.add('hidden');
+
+            alert(`🎉 รับรางวัลประจำวันสำเร็จ! ได้รับ +${rewardXP} XP และ +${rewardCoins} เหรียญ 💰`);
 
         } catch (err) {
-            console.error("รับรางวัลพลาด:", err);
-            alert("เกิดข้อผิดพลาด ลองใหม่อีกครั้งครับ ❌");
-            btnClaim.disabled = false;
-            btnClaim.innerHTML = 'กดรับเลย!';
+            console.error("claimDailyReward Error:", err);
+            alert('❌ เกิดข้อผิดพลาดในการรับรางวัล: ' + err.message);
+            btn.disabled = false;
+            btn.innerText = 'กดรับเลย!';
         }
     }
 
@@ -1862,6 +2004,199 @@
             alert("เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่ครับ");
         }
     }
+    // ==========================================
+    // 🌟 ระบบคำนวณเลเวลและหลอดประสบการณ์ (EXP Bar) 🌟
+    // ==========================================
+    function updateExperienceUI(totalXp) {
+        let currentTotalXP = totalXp || 0;
+        let playerLevel = 1;
+        let xpNeeded = 500; // เลเวล 1 ต้องการ 500 XP
+        let accumulatedXP = 0;
+
+        // คำนวณเลเวล (ด่านยิ่งสูง ยิ่งใช้ XP เยอะขึ้น 20%)
+        while (currentTotalXP >= accumulatedXP + xpNeeded) {
+            accumulatedXP += xpNeeded;
+            playerLevel++;
+            xpNeeded = Math.floor(xpNeeded * 1.2); 
+        }
+
+        // คำนวณความคืบหน้าของเลเวลปัจจุบัน
+        let currentLevelXP = currentTotalXP - accumulatedXP; // เศษ XP ในเลเวลปัจจุบัน
+        let progressPercent = (currentLevelXP / xpNeeded) * 100;
+
+        // 1. อัปเดตป้ายเลเวล
+        if(document.getElementById('player-level')) {
+            document.getElementById('player-level').innerText = `Lv.${playerLevel}`;
+        }
+        
+        // 2. อัปเดตตัวเลขเศษ XP (เช่น 250/500)
+        if(document.getElementById('player-exp-text')) {
+            document.getElementById('player-exp-text').innerText = `${currentLevelXP}/${xpNeeded}`;
+        }
+        
+        // 3. อัปเดตหลอดสีส้ม ให้วิ่งตามเปอร์เซ็นต์
+        if(document.getElementById('player-exp-bar')) {
+            document.getElementById('player-exp-bar').style.width = `${progressPercent}%`;
+        }
+
+        // 4. ถ้ามีระบบเปลี่ยนสกินร่างตามเลเวล ให้มันเช็คอัตโนมัติด้วย
+        if (typeof updatePlayerAvatar === 'function') {
+            // ส่ง currentTotalXP ที่ฟังก์ชัน updateExperienceUI ได้รับมา ส่งต่อไปเลย
+            updatePlayerAvatar(currentTotalXP); 
+        }
+    }
+
+    // ==========================================
+    // 🌟 ระบบสกินและฉายา แยกตามสายตัวละคร (Class) 🌟
+    // ==========================================
+    let allLevelSkins = [];
+
+    // 1. ฟังก์ชันโหลดข้อมูลสกินทั้งหมดจากฐานข้อมูล (เรียกใช้ตอนเปิดเว็บ)
+    async function loadLevelSkins() {
+        try {
+            const { data, error } = await supabaseClient
+                .from('level_skins')
+                .select('*')
+                .order('level', { ascending: true }); 
+            
+            if (!error && data) {
+        allLevelSkins = data;
+        // ดึงเสร็จแล้ว สั่งเช็คเลเวลและเปลี่ยนร่างทันที
+        if (currentStudent) {
+            // ให้แน่ใจว่าส่ง currentStudent.xp ไป
+            updatePlayerAvatar(currentStudent.xp || 0); 
+        }
+    }
+        } catch (err) {
+            console.error("โหลดข้อมูลสกินล้มเหลว:", err);
+        }
+    }
+
+    // ฟังก์ชันคำนวณและเปลี่ยนร่าง พร้อมตรวจจับการเลเวลอัป
+    function updatePlayerAvatar(currentXp) {
+        if (!currentStudent) return;
+
+        // 1. คำนวณเลเวลปัจจุบันจาก XP
+        let currentTotalXP = currentXp || 0;
+        let currentLevel = 1;
+        let xpNeeded = 500;
+        let accumulatedXP = 0;
+
+        while (currentTotalXP >= accumulatedXP + xpNeeded) {
+            accumulatedXP += xpNeeded;
+            currentLevel++;
+            xpNeeded = Math.floor(xpNeeded * 1.2); 
+        }
+
+        // 2. หาสกินและฉายาที่ตรงกับเลเวลและสายอาชีพ
+        let currentSkin = { skin_url: '', title: currentStudent.character_class || 'นักผจญภัย' }; 
+        
+        if (allLevelSkins && allLevelSkins.length > 0) {
+            const studentClass = currentStudent.character_class || 'ทั่วไป';
+            
+            const unlockedSkins = allLevelSkins.filter(skin => 
+                (skin.character_class === studentClass || skin.character_class === 'ทั่วไป') && 
+                skin.level <= currentLevel
+            );
+            
+            if (unlockedSkins.length > 0) {
+                unlockedSkins.sort((a, b) => {
+                    if (b.level !== a.level) return b.level - a.level;
+                    if (b.character_class === studentClass) return 1;
+                    return -1;
+                });
+                if (unlockedSkins[0].skin_url) currentSkin.skin_url = unlockedSkins[0].skin_url;
+                if (unlockedSkins[0].title) currentSkin.title = unlockedSkins[0].title;
+            }
+        }
+
+        // 3. อัปเดตข้อความบนหน้าจอ (เลเวล, ฉายา, สายอาชีพ)
+        if(document.getElementById('player-level')) document.getElementById('player-level').innerText = "Lv." + currentLevel;
+        if(document.getElementById('player-title')) document.getElementById('player-title').innerText = currentSkin.title || 'นักผจญภัย';
+        if(document.getElementById('player-character-class')) document.getElementById('player-character-class').innerText = currentStudent.character_class || 'ทั่วไป';
+
+        // 4. เลือกรูปภาพแสดงผล
+        const finalAvatar = currentSkin.skin_url || currentStudent.avatar_image || '👦🏻';
+        const avatarImg = document.getElementById('profile-avatar'); 
+        const topAvatarImg = document.getElementById('top-bar-avatar'); 
+
+        let topHtml = '';
+        let mainHtml = '';
+        if (finalAvatar.startsWith('http')) {
+            topHtml = `<img src="${finalAvatar}" class="w-full h-full object-cover">`;
+            mainHtml = `<img src="${finalAvatar}" class="w-full h-full object-contain drop-shadow-xl transform hover:scale-105 transition duration-300">`;
+        } else {
+            topHtml = finalAvatar;
+            mainHtml = `<span class="text-7xl drop-shadow-md">${finalAvatar}</span>`;
+        }
+
+        if(topAvatarImg) topAvatarImg.innerHTML = topHtml;
+        if(avatarImg) avatarImg.innerHTML = mainHtml;
+
+        // 🌟 5. ตรวจจับ Level Up เพื่อเปิด Modal เฉลิมฉลอง 🌟
+        checkAndTriggerLevelUp(currentLevel, currentSkin, finalAvatar);
+    }
+
+    // ฟังก์ชันเช็คและแสดงป๊อปอัปเลเวลอัป
+    function checkAndTriggerLevelUp(newLevel, skinData, avatarUrl) {
+        const storageKey = `schoolquest_last_level_${currentStudent.id}`;
+        const previousLevelStr = localStorage.getItem(storageKey);
+
+        if (previousLevelStr === null) {
+            // บันทึกเลเวลครั้งแรกตอนเข้าสู่ระบบ (ไม่เด้งป๊อปอัป)
+            localStorage.setItem(storageKey, newLevel);
+            return;
+        }
+
+        const previousLevel = parseInt(previousLevelStr, 10);
+
+        // ถ้าเลเวลใหม่ สูงกว่าเลเวลเดิมที่เคยบันทึกไว้ ให้ฉลองทันที!
+        if (newLevel > previousLevel) {
+            localStorage.setItem(storageKey, newLevel);
+            showLevelUpModal(newLevel, skinData, avatarUrl);
+        }
+    }
+
+    // ฟังก์ชันเปิด Modal และยิงพลุ
+    function showLevelUpModal(level, skinData, avatarUrl) {
+        const modal = document.getElementById('modal-level-up');
+        if (!modal) return;
+
+        document.getElementById('levelup-number').innerText = `Lv.${level}`;
+        document.getElementById('levelup-title').innerText = skinData.title || 'นักผจญภัย';
+        document.getElementById('levelup-class-badge').innerText = `สายอาชีพ: ${currentStudent.character_class || 'ทั่วไป'}`;
+
+        const previewContainer = document.getElementById('levelup-avatar-preview');
+        if (previewContainer) {
+            if (avatarUrl.startsWith('http')) {
+                previewContainer.innerHTML = `<img src="${avatarUrl}" class="w-full h-full object-contain drop-shadow-md">`;
+            } else {
+                previewContainer.innerHTML = `<span class="text-4xl">${avatarUrl}</span>`;
+            }
+        }
+
+        modal.classList.remove('hidden');
+
+        // 🎆 ยิงพลุกระดาษฉลอง
+        if (typeof confetti === 'function') {
+            confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { y: 0.6 }
+            });
+            setTimeout(() => {
+                confetti({ particleCount: 50, angle: 60, spread: 55, origin: { x: 0 } });
+                confetti({ particleCount: 50, angle: 120, spread: 55, origin: { x: 1 } });
+            }, 250);
+        }
+    }
+
+    // ฟังก์ชันปิด Modal
+    function closeLevelUpModal() {
+        const modal = document.getElementById('modal-level-up');
+        if (modal) modal.classList.add('hidden');
+    }
+
 </script>
 </body>
 </html>
