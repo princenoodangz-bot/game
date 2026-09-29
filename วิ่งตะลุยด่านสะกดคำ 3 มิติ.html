@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>วิ่งตะลุยด่านสะกดคำ 3 มิติ (ป.5)</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js (Global Script) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Supabase JS v2 -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background-color: #87CEEB; 
+            touch-action: none; 
+            font-family: 'Sarabun', sans-serif; 
+            -webkit-touch-callout: none; /* ป้องกันเมนูเด้งบนมือถือ */
+            -webkit-user-select: none; /* ป้องกันการคลุมดำข้อความบน iOS */
+            user-select: none;
+        }
+        canvas { display: block; width: 100vw; height: 100vh; }
+        
+        /* แก้วใส (Glassmorphism) */
+        .glass {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        /* การ์ดโจทย์ (ตามข้อกำหนดเป๊ะๆ) */
+        #question-card {
+            position: fixed;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 40;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            border-radius: 20px;
+            padding: 12px; /* ปรับลดลงนิดนึงให้เหมาะกับมือถือ */
+            transition: all 0.3s ease;
+        }
+
+        /* แผงควบคุมด้านล่างสุด (ปรับแต่งเพื่อมือถือโดยเฉพาะ) */
+        #controls {
+            position: fixed;
+            bottom: max(20px, env(safe-area-inset-bottom)); /* รองรับหน้าจอมีติ่ง/ขอบโค้ง iPhone */
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 40;
+            display: flex;
+            gap: 10px;
+            width: 95%; /* ขยายพื้นที่ให้ปุ่มกระจายตัว */
+            max-width: 500px;
+            justify-content: space-between; /* ให้ซ้ายสุด ขวาสุด กระโดดกลาง */
+            opacity: 0.9;
+            touch-action: manipulation;
+        }
+
+        .control-btn {
+            background: rgba(255, 255, 255, 0.95);
+            border: 3px solid #4F46E5;
+            color: #4F46E5;
+            width: 75px; /* ใหญ่ขึ้นกดง่ายขึ้น */
+            height: 75px;
+            border-radius: 50%;
+            font-size: 30px;
+            font-weight: bold;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            user-select: none;
+            box-shadow: 0 6px 0 #3730A3;
+            transition: transform 0.1s, box-shadow 0.1s;
+            -webkit-tap-highlight-color: transparent; /* เอาแสงกระพริบตอนกดออก */
+        }
+        /* รวม effect ตอนกดทั้งเมาส์และทัชหน้าจอ */
+        .control-btn:active, .control-btn.active-touch { 
+            transform: translateY(6px); 
+            box-shadow: 0 0 0 #3730A3; 
+        }
+        .control-btn.jump { 
+            width: 150px; /* ปุ่มกระโดดยาวขึ้นอยู่ตรงกลาง */
+            border-radius: 35px; 
+            font-size: 22px;
+        }
+
+        /* แอนิเมชันตอนตอบถูก/ผิด */
+        .feedback-pop { animation: pop 0.5s ease-out forwards; }
+        @keyframes pop {
+            0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+            50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- แถบสถานะด้านบน (ใช้ sm: ย่อขนาดบนมือถือ) -->
+    <div id="hud" class="fixed top-4 left-0 w-full px-2 sm:px-4 z-50 flex justify-between items-start pointer-events-none text-base sm:text-xl font-bold text-gray-800 drop-shadow-md">
+        <div class="glass px-3 py-1 sm:px-4 sm:py-2 rounded-xl text-indigo-700">🏃 <span id="round-ui">1/6</span></div>
+        <div class="flex flex-col gap-1 sm:gap-2 items-end">
+            <div class="glass px-3 py-1 sm:px-4 sm:py-2 rounded-xl text-yellow-600">🏆 <span id="score-ui">0</span></div>
+            <div class="glass px-3 py-1 sm:px-4 sm:py-2 rounded-xl text-green-600">⭐ <span id="correct-ui">0</span></div>
+            <div id="player-buffs" class="glass px-2 py-1 sm:px-3 sm:py-1 rounded-xl text-xs sm:text-sm text-pink-600 hidden">💖 +Buff</div>
+        </div>
+    </div>
+
+    <!-- การ์ดโจทย์ (ปรับ Responsive ตัวหนังสือ) -->
+    <div id="question-card" class="glass hidden">
+        <p id="instruction-ui" class="text-xs sm:text-sm font-bold text-indigo-500 mb-1">เติมตัวสะกด/ตัวการันต์ ให้ถูกต้อง</p>
+        <div class="text-2xl sm:text-3xl font-extrabold text-gray-800 flex items-center justify-center gap-2">
+            <span id="emoji-ui" class="text-3xl sm:text-4xl">❓</span>
+            <span id="word-ui" class="tracking-widest">_</span>
+        </div>
+        <p id="retry-ui" class="text-red-500 text-xs sm:text-sm font-bold mt-1 h-5"></p>
+    </div>
+
+    <!-- หน้าจอเริ่มเกม -->
+    <div id="start-screen" class="fixed inset-0 bg-black/60 z-50 flex flex-col items-center justify-center text-white backdrop-blur-sm">
+        <h1 class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-pink-500 mb-4 text-center drop-shadow-lg">
+            วิ่งตะลุยด่าน<br>สะกดคำภาษาไทย
+        </h1>
+        <p class="mb-6 text-xl">ระดับ ป.5 (คำยาก)</p>
+        <div id="loading-text" class="text-yellow-300 font-bold mb-4 animate-pulse">กำลังโหลดข้อมูลผู้เล่น...</div>
+        <button id="start-btn" class="hidden bg-gradient-to-r from-green-400 to-blue-500 px-8 py-4 rounded-full text-2xl font-bold shadow-[0_6px_0_#047857] active:shadow-none active:translate-y-[6px] transition-all">
+            แตะเพื่อเริ่มวิ่ง!
+        </button>
+    </div>
+
+    <!-- หน้าจอจบเกม -->
+    <div id="end-screen" class="fixed inset-0 bg-black/80 z-50 hidden flex-col items-center justify-center text-white backdrop-blur-md">
+        <h1 class="text-5xl font-extrabold text-yellow-400 mb-2 drop-shadow-[0_0_10px_rgba(250,204,21,0.8)]">ถึงเส้นชัยแล้ว! 🏁</h1>
+        <div id="stars-ui" class="text-6xl mb-4 tracking-widest">⭐⭐⭐</div>
+        <p class="text-2xl mb-2">สะกดถูก: <span id="final-correct" class="text-green-400 font-bold">0</span>/6</p>
+        <p class="text-2xl mb-6">คะแนนรวม: <span id="final-score" class="text-yellow-400 font-bold">0</span></p>
+        
+        <div id="saving-status" class="text-gray-300 mb-4 animate-pulse">กำลังบันทึกคะแนน...</div>
+        
+        <button id="hub-btn" class="hidden bg-indigo-500 hover:bg-indigo-600 px-8 py-4 rounded-full text-xl font-bold shadow-[0_6px_0_#312E81] active:shadow-none active:translate-y-[6px] transition-all" onclick="window.location.href='index.html'">
+            🏠 กลับศูนย์รวมเกม
+        </button>
+    </div>
+
+    <!-- ข้อความตอบรับกลางจอ -->
+    <div id="feedback-ui" class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 text-6xl font-extrabold pointer-events-none opacity-0 drop-shadow-[0_4px_4px_rgba(0,0,0,0.5)]">
+    </div>
+
+    <!-- แผงควบคุม (มือถือ/เมาส์) -->
+    <div id="controls">
+        <button class="control-btn" id="btn-left">◀</button>
+        <button class="control-btn jump" id="btn-jump">▲ กระโดด</button>
+        <button class="control-btn" id="btn-right">▶</button>
+    </div>
+
+    <script>
+        // ---------------------------------------------------------
+        // 1. ตั้งค่าการเชื่อมต่อ Supabase & ตัวแปรระบบ
+        // ---------------------------------------------------------
+        const SUPABASE_URL = 'https://gtcjixepijvcgvyfpqws.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0Y2ppeGVwaWp2Y2d2eWZwcXdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3MjU5NDYsImV4cCI6MjEwMTMwMTk0Nn0.FyEIl4r_LXhLeUxIzHusKzpnp7EdMvjADCdiLEMS-G8';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // ตัวแปรผู้เล่น
+        let playerStats = { id: null, gameId: null, xp: 0, coins: 0, xp_math: 0, level: 1, inventory: [] };
+        let gameBuffs = { bonusScore: 0, skips: 0 };
+        let isPlayerDataLoaded = false;
+
+        // ตัวแปรระบบเกมหลัก
+        let score = 0;
+        let streak = 0;
+        let wordIndex = 0;
+        let correctTotal = 0;
+        let firstTryCorrect = 0;
+        let missCount = 0;
+        let isProcessingAnswer = false; // ป้องกันบั๊กลูป
+        let isGameRunning = false;
+        
+        let playerLane = 1; // 0=ซ้าย, 1=กลาง, 2=ขวา
+        const LANE_WIDTH = 3;
+        const LANE_POSITIONS = [-LANE_WIDTH, 0, LANE_WIDTH];
+
+        // ---------------------------------------------------------
+        // ชุดคำศัพท์ ป.5 (คำยาก 1 ช่องว่าง)
+        // ---------------------------------------------------------
+        const vocabDB = [
+            // กลุ่มตัวสะกด / ตัวการันต์
+            { word: "อากา_", full: "อากาศ", options: ["ศ", "ษ", "ส"], ansIndex: 0, emoji: "🌤️", hint: "เติมตัวสะกดให้ถูกต้อง" },
+            { word: "โอกา_", full: "โอกาส", options: ["ส", "ศ", "ษ"], ansIndex: 0, emoji: "🎁", hint: "เติมตัวสะกดให้ถูกต้อง" },
+            { word: "อนุญา_", full: "อนุญาต", options: ["ต", "ฏ", "ท"], ansIndex: 0, emoji: "✅", hint: "เติมตัวสะกดให้ถูกต้อง" },
+            { word: "สังเก_", full: "สังเกต", options: ["ต", "ตุ", "ติ"], ansIndex: 0, emoji: "👀", hint: "เติมตัวสะกดให้ถูกต้อง" },
+            { word: "บรรยากา_", full: "บรรยากาศ", options: ["ศ", "ษ", "ส"], ansIndex: 0, emoji: "🏞️", hint: "เติมตัวสะกดให้ถูกต้อง" },
+            { word: "อารม_์", full: "อารมณ์", options: ["ณ", "น", "ม"], ansIndex: 0, emoji: "😊", hint: "เติมพยัญชนะก่อนการันต์" },
+            { word: "แพท_์", full: "แพทย์", options: ["ย", "ร", "ล"], ansIndex: 0, emoji: "🩺", hint: "เติมพยัญชนะก่อนการันต์" },
+            { word: "กฎหมา_", full: "กฎหมาย", options: ["ย", "ร", "ล"], ansIndex: 0, emoji: "⚖️", hint: "เติมตัวสะกดให้ถูกต้อง" },
+            { word: "ปราก_", full: "ปรากฏ", options: ["ฏ", "ฎ", "ต"], ansIndex: 0, emoji: "✨", hint: "เติมตัวสะกดให้ถูกต้อง" }
+        ];
+
+        let currentRoundWords = []; // เก็บ 6 คำที่จะใช้เล่น
+
+        // ---------------------------------------------------------
+        // 2. ฟังก์ชัน Supabase (ดึงข้อมูลตอนเริ่ม & บันทึกตอนจบ)
+        // ---------------------------------------------------------
+        window.addEventListener('DOMContentLoaded', async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const studentId = urlParams.get('student_id');
+            const gameId = urlParams.get('game_id') || 'thai_runner_p5'; // Fallback id
+
+            if (!studentId) {
+                document.getElementById('loading-text').innerText = "โหมดทดลองเล่น (ไม่บันทึกคะแนน)";
+                enableStartButton();
+                return;
+            }
+
+            try {
+                playerStats.id = studentId;
+                playerStats.gameId = gameId;
+
+                // โหลดข้อมูลนักเรียน
+                const { data: studentData, error: studentError } = await supabaseClient.from('students').select('*').eq('id', studentId).single();
+                
+                if (studentData) {
+                    playerStats.xp = studentData.xp || 0;
+                    playerStats.coins = studentData.coins || 0;
+                    playerStats.xp_math = studentData.xp_math || 0; // ในบริบทนี้อาจหมายถึง xp วิชารวม
+                    playerStats.level = Math.floor(playerStats.xp / 500) + 1;
+                    
+                    // สมมติว่ามี Table inventory
+                    const { data: invData } = await supabaseClient.from('student_inventory').select('items(item_name)').eq('student_id', studentId);
+                    if(invData) playerStats.inventory = invData.map(i => i.items?.item_name);
+
+                    applyGameBuffs();
+                    document.getElementById('loading-text').innerText = `พร้อมแล้ว! ระดับผู้เล่น: เลเวล ${playerStats.level}`;
+                } else {
+                    document.getElementById('loading-text').innerText = "พบรหัสผู้เล่น แต่ไม่มีฐานข้อมูล (เล่นโหมดปกติ)";
+                }
+            } catch (error) {
+                console.error("โหลดข้อมูลล้มเหลว", error);
+                document.getElementById('loading-text').innerText = "โหลดข้อมูลล้มเหลว เล่นแบบออฟไลน์";
+            }
+            
+            enableStartButton();
+        });
+
+        function applyGameBuffs() {
+            let buffText = "";
+            if (playerStats.level >= 5) {
+                gameBuffs.bonusScore += 50;
+                buffText += "โบนัสคะแนน LV5+ ";
+            }
+            if (playerStats.inventory.includes("รองเท้าลม")) {
+                gameBuffs.skips = 1;
+                buffText += " ข้ามผิดได้ 1 ครั้ง ";
+            }
+
+            if(buffText) {
+                const buffUi = document.getElementById('player-buffs');
+                buffUi.innerText = "✨ " + buffText;
+                buffUi.classList.remove('hidden');
+            }
+        }
+
+        function enableStartButton() {
+            document.getElementById('start-btn').classList.remove('hidden');
+            isPlayerDataLoaded = true;
+        }
+
+        async function gameOverAndSaveScore() {
+            isGameRunning = false;
+            
+            // คำนวณดาว
+            let stars = 1;
+            if (firstTryCorrect === 6) stars = 3;
+            else if (firstTryCorrect >= 4) stars = 2;
+            
+            document.getElementById('stars-ui').innerText = '⭐'.repeat(stars) + '🌑'.repeat(3 - Math.max(0, stars));
+            document.getElementById('final-correct').innerText = correctTotal;
+            document.getElementById('final-score').innerText = score;
+            
+            document.getElementById('end-screen').style.display = 'flex';
+            document.getElementById('question-card').classList.add('hidden');
+            document.getElementById('controls').style.display = 'none';
+
+            if (!playerStats.id) {
+                document.getElementById('saving-status').innerText = "ไม่ได้เข้าสู่ระบบ ไม่มีการบันทึกคะแนน";
+                document.getElementById('hub-btn').classList.remove('hidden');
+                return;
+            }
+
+            try {
+                // 1. บันทึกลงตาราง scores
+                const { error: scoreError } = await supabaseClient
+                    .from('scores')
+                    .insert([{ 
+                        student_id: playerStats.id, 
+                        game_id: playerStats.gameId, 
+                        score: score 
+                    }]);
+                
+                if (scoreError) throw scoreError;
+
+                // 2. อัปเดตตาราง students (เหรียญ, XP) ตามโค้ดต้นแบบของคุณครู
+                const earnedCoins = Math.floor(score / 10);
+                const earnedXP = score;
+                const earnedThaiXP = Math.floor(score / 2); // แอบประยุกต์ใช้เป็นค่าวิชานี้
+
+                const newCoins = playerStats.coins + earnedCoins;
+                const newXP = playerStats.xp + earnedXP;
+                const newMathXP = playerStats.xp_math + earnedThaiXP;
+
+                const { error: studentError } = await supabaseClient
+                    .from('students')
+                    .update({ coins: newCoins, xp: newXP, xp_math: newMathXP })
+                    .eq('id', playerStats.id);
+                
+                if (studentError) throw studentError;
+
+                document.getElementById('saving-status').innerHTML = `บันทึกสำเร็จ! ได้รับ <span class="text-yellow-400">🪙 ${earnedCoins}</span> | <span class="text-blue-400">⭐ ${earnedXP} XP</span>`;
+            } catch (error) {
+                console.error("Save Error:", error);
+                document.getElementById('saving-status').innerText = "เกิดข้อผิดพลาดในการบันทึกคะแนน";
+            }
+            
+            document.getElementById('hub-btn').classList.remove('hidden');
+        }
+
+        // ---------------------------------------------------------
+        // 3. ระบบเสียง (สังเคราะห์ด้วย Oscillator)
+        // ---------------------------------------------------------
+        let audioCtx;
+        function initAudio() {
+            if (!audioCtx) {
+                try {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    audioCtx = new AudioContext();
+                } catch (e) { console.warn("Web Audio API not supported"); }
+            }
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function playSound(type) {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            if (type === 'jump') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.1);
+                gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+            } else if (type === 'correct') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
+                osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1); // E5
+                osc.frequency.setValueAtTime(783.99, audioCtx.currentTime + 0.2); // G5
+                gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.4);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.4);
+            } else if (type === 'wrong') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.3);
+                gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+            } else if (type === 'coin') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(1200, audioCtx.currentTime);
+                gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+            }
+        }
+
+        // ---------------------------------------------------------
+        // 4. Three.js Engine Setup
+        // ---------------------------------------------------------
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xFDF4FF); // สีฟ้าอมชมพูพาสเทล
+        scene.fog = new THREE.Fog(0xFDF4FF, 30, 100);
+
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 200);
+        camera.position.set(0, 5, 10);
+        camera.lookAt(0, 0, -20);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        document.body.appendChild(renderer.domElement);
+
+        // แสง
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+        dirLight.position.set(10, 20, 10);
+        dirLight.castShadow = true;
+        scene.add(dirLight);
+
+        // ถนน (3 เลน)
+        const roadGroup = new THREE.Group();
+        const roadMatCenter = new THREE.MeshStandardMaterial({ color: 0x4F46E5 });
+        const roadMatSide = new THREE.MeshStandardMaterial({ color: 0x4338CA });
+        
+        for(let i=-1; i<=1; i++) {
+            const roadGeo = new THREE.PlaneGeometry(LANE_WIDTH - 0.2, 200);
+            const roadMesh = new THREE.Mesh(roadGeo, i === 0 ? roadMatCenter : roadMatSide);
+            roadMesh.rotation.x = -Math.PI / 2;
+            roadMesh.position.set(i * LANE_WIDTH, 0, -50);
+            roadMesh.receiveShadow = true;
+            roadGroup.add(roadMesh);
+        }
+        scene.add(roadGroup);
+
+        // ลายเส้นถนนวิ่ง (Visual Effect)
+        const linesGeo = new THREE.PlaneGeometry(0.2, 10);
+        const linesMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent:true, opacity:0.5 });
+        const lines = [];
+        for(let i=0; i<10; i++) {
+            const l1 = new THREE.Mesh(linesGeo, linesMat);
+            l1.rotation.x = -Math.PI/2;
+            l1.position.set(-LANE_WIDTH/2, 0.05, -i*20);
+            scene.add(l1);
+            lines.push(l1);
+
+            const l2 = new THREE.Mesh(linesGeo, linesMat);
+            l2.rotation.x = -Math.PI/2;
+            l2.position.set(LANE_WIDTH/2, 0.05, -i*20);
+            scene.add(l2);
+            lines.push(l2);
+        }
+
+        // ---------------------------------------------------------
+        // 5. Player Character (ก้อนกลมสีชมพู)
+        // ---------------------------------------------------------
+        const playerGroup = new THREE.Group();
+        
+        // Body
+        const bodyGeo = new THREE.SphereGeometry(0.8, 16, 16);
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0xF9A8D4, roughness: 0.4 });
+        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        body.position.y = 0.8;
+        body.castShadow = true;
+        playerGroup.add(body);
+
+        // Face (Eyes & Mouth)
+        const eyeGeo = new THREE.SphereGeometry(0.1, 8, 8);
+        const eyeMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
+        const eyeL = new THREE.Mesh(eyeGeo, eyeMat);
+        eyeL.position.set(-0.3, 1, -0.75);
+        const eyeR = new THREE.Mesh(eyeGeo, eyeMat);
+        eyeR.position.set(0.3, 1, -0.75);
+        playerGroup.add(eyeL, eyeR);
+
+        // Blush
+        const blushGeo = new THREE.CircleGeometry(0.15, 16);
+        const blushMat = new THREE.MeshBasicMaterial({ color: 0xF43F5E, side: THREE.DoubleSide, transparent:true, opacity:0.6});
+        const blushL = new THREE.Mesh(blushGeo, blushMat);
+        blushL.position.set(-0.4, 0.8, -0.75);
+        const blushR = new THREE.Mesh(blushGeo, blushMat);
+        blushR.position.set(0.4, 0.8, -0.75);
+        playerGroup.add(blushL, blushR);
+
+        playerGroup.position.set(0, 0, 0);
+        scene.add(playerGroup);
+
+        // ตัวแปรควบคุม Player
+        let targetX = 0;
+        let playerVelY = 0;
+        let isJumping = false;
+        const GRAVITY = -0.02;
+        const JUMP_FORCE = 0.4;
+        let jumpTimer = 0; // แอนิเมชันเด้งดึ๋งเวลาวิ่งปกติ
+
+        // ---------------------------------------------------------
+        // 6. Object Management (Doors & Logs)
+        // ---------------------------------------------------------
+        let activeDoors = [];
+        let activeLogs = [];
+        let GAME_SPEED = 0.4;
+        const DOOR_SPAWN_Z = -80;
+        const COLLISION_Z = 0;
+
+        // ฟังก์ชันสร้าง Texture อักษรสำหรับประตู
+        function createTextTexture(text, isCorrect) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            
+            // พื้นหลังและขอบ
+            ctx.fillStyle = '#FFFFFF';
+            ctx.beginPath();
+            ctx.roundRect(10, 10, 236, 236, 20);
+            ctx.fill();
+            
+            ctx.lineWidth = 15;
+            ctx.strokeStyle = '#3B82F6'; // สีฟ้า
+            ctx.stroke();
+
+            // รอยปะวงกลมถ้าเป็นสระที่ต้องการพยัญชนะต้น (เช่น ◌ู)
+            const upperLowerVowels = ['ิ','ี','ึ','ื','ุ','ู','ั','็','์'];
+            if(upperLowerVowels.includes(text)) {
+                ctx.strokeStyle = '#9CA3AF';
+                ctx.setLineDash([10, 10]);
+                ctx.lineWidth = 5;
+                ctx.beginPath();
+                ctx.arc(128, 128, 40, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
+            // ตัวอักษร
+            ctx.font = 'bold 100px Sarabun, sans-serif';
+            ctx.fillStyle = '#1F2937';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            // ปรับตำแหน่ง Y ถ้ารูปแบบสระลอย
+            let yOffset = 140;
+            if(['ิ','ี','ึ','ื','ั','็','์'].includes(text)) yOffset = 80;
+            else if(['ุ','ู'].includes(text)) yOffset = 190;
+            
+            ctx.fillText(text, 128, yOffset);
+
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.generateMipmaps = false;
+            texture.minFilter = THREE.LinearFilter;
+            return texture;
+        }
+
+        function spawnRound(wIndex) {
+            if(wIndex < 0 || wIndex >= currentRoundWords.length) return; // ป้องกัน undefined
+            
+            const currentData = currentRoundWords[wIndex];
+            
+            // ลบของเก่า
+            activeDoors.forEach(d => scene.remove(d.mesh));
+            activeDoors = [];
+            
+            // อัปเดต UI โจทย์
+            document.getElementById('question-card').classList.remove('hidden');
+            document.getElementById('emoji-ui').innerText = currentData.emoji;
+            document.getElementById('word-ui').innerText = currentData.word;
+            document.getElementById('instruction-ui').innerText = currentData.hint;
+            document.getElementById('retry-ui').innerText = missCount > 0 ? `ลองใหม่ (พลาด ${missCount}/3)` : "";
+            document.getElementById('round-ui').innerText = `${wIndex + 1}/6`;
+            
+            // สุ่มตำแหน่งคำตอบ
+            let indices = [0, 1, 2];
+            indices.sort(() => Math.random() - 0.5);
+            
+            // สร้างประตู 3 บาน
+            for(let i=0; i<3; i++) {
+                const optionText = currentData.options[i];
+                const isCorrect = (i === currentData.ansIndex);
+                const laneIdx = indices[i];
+                
+                const texture = createTextTexture(optionText, isCorrect);
+                const geo = new THREE.PlaneGeometry(2.5, 3.5);
+                const mat = new THREE.MeshBasicMaterial({ map: texture, transparent: true, side: THREE.DoubleSide });
+                const mesh = new THREE.Mesh(geo, mat);
+                
+                mesh.position.set(LANE_POSITIONS[laneIdx], 1.75, DOOR_SPAWN_Z);
+                scene.add(mesh);
+                
+                activeDoors.push({
+                    mesh: mesh,
+                    isCorrect: isCorrect,
+                    lane: laneIdx,
+                    text: optionText
+                });
+            }
+
+            // สุ่มสร้างท่อนไม้ (Log) ก่อนถึงประตู
+            if(Math.random() > 0.4) {
+                spawnLog();
+            }
+
+            // ปลดล็อกการตรวจคำตอบเมื่อสร้างประตูเสร็จ
+            isProcessingAnswer = false; 
+        }
+
+        function spawnLog() {
+            const geo = new THREE.CylinderGeometry(0.3, 0.3, 2, 8);
+            const mat = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.rotation.z = Math.PI / 2;
+            
+            // สุ่มเลน
+            const lane = Math.floor(Math.random() * 3);
+            mesh.position.set(LANE_POSITIONS[lane], 0.3, DOOR_SPAWN_Z + 30); // วางไว้ก่อนประตู
+            mesh.castShadow = true;
+            scene.add(mesh);
+            
+            activeLogs.push({ mesh: mesh, lane: lane, scored: false });
+        }
+
+        // ---------------------------------------------------------
+        // 7. Input Handling
+        // ---------------------------------------------------------
+        function moveLeft() { if(playerLane > 0) playerLane--; initAudio(); }
+        function moveRight() { if(playerLane < 2) playerLane++; initAudio(); }
+        function jump() { 
+            if(!isJumping) { 
+                playerVelY = JUMP_FORCE; 
+                isJumping = true; 
+                playSound('jump');
+            } 
+            initAudio();
+        }
+
+        // ฟังก์ชันจัดการปุ่มกด (รองรับ Touch ให้ตอบสนองดีเยี่ยม)
+        function bindTouchButton(btnId, action) {
+            const btn = document.getElementById(btnId);
+            
+            // มือถือแตะ
+            btn.addEventListener('touchstart', (e) => {
+                e.preventDefault(); // กันซูมหรือเลื่อนจอ
+                btn.classList.add('active-touch'); // แสดงผลปุ่มยุบ
+                action();
+            }, { passive: false });
+            
+            // มือถือปล่อย
+            btn.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                btn.classList.remove('active-touch');
+            });
+            
+            // คอมพิวเตอร์คลิก
+            btn.addEventListener('mousedown', () => action());
+        }
+
+        bindTouchButton('btn-left', moveLeft);
+        bindTouchButton('btn-right', moveRight);
+        bindTouchButton('btn-jump', jump);
+
+        window.addEventListener('keydown', (e) => {
+            if(e.key === 'ArrowLeft' || e.key === 'a') moveLeft();
+            if(e.key === 'ArrowRight' || e.key === 'd') moveRight();
+            if(e.key === 'ArrowUp' || e.key === 'w' || e.key === ' ') jump();
+        });
+
+        // ---------------------------------------------------------
+        // 8. แสดง Feedback UI (คำชม / ลองใหม่)
+        // ---------------------------------------------------------
+        function showFeedback(text, color) {
+            const fb = document.getElementById('feedback-ui');
+            fb.innerText = text;
+            fb.style.color = color;
+            fb.classList.remove('feedback-pop');
+            void fb.offsetWidth; // trigger reflow
+            fb.classList.add('feedback-pop');
+        }
+
+        function updateUI() {
+            document.getElementById('score-ui').innerText = score;
+            document.getElementById('correct-ui').innerText = correctTotal;
+        }
+
+        // ---------------------------------------------------------
+        // 9. Game Loop Main Engine
+        // ---------------------------------------------------------
+        function animate() {
+            requestAnimationFrame(animate);
+            if (!isGameRunning) {
+                renderer.render(scene, camera);
+                return;
+            }
+
+            // เลื่อนเส้นพื้นถนน (Speed effect)
+            lines.forEach(l => {
+                l.position.z += GAME_SPEED;
+                if(l.position.z > 10) l.position.z = -190;
+            });
+
+            // การเคลื่อนที่ Player X (สลับเลน)
+            targetX = LANE_POSITIONS[playerLane];
+            playerGroup.position.x += (targetX - playerGroup.position.x) * 0.2;
+
+            // การเคลื่อนที่ Player Y (กระโดด & เด้งตอนวิ่ง)
+            if (isJumping) {
+                playerGroup.position.y += playerVelY;
+                playerVelY += GRAVITY;
+                if (playerGroup.position.y <= 0) {
+                    playerGroup.position.y = 0;
+                    isJumping = false;
+                    playerVelY = 0;
+                }
+            } else {
+                // วิ่งเด้งดึ๋งๆ
+                jumpTimer += 0.2;
+                playerGroup.position.y = Math.abs(Math.sin(jumpTimer)) * 0.3;
+            }
+            body.rotation.x -= 0.1; // กลิ้งตัว
+
+            // เลื่อนท่อนไม้ (Logs) และเช็กกระโดด
+            for(let i = activeLogs.length - 1; i >= 0; i--) {
+                let log = activeLogs[i];
+                log.mesh.position.z += GAME_SPEED;
+
+                // เช็กชน/ข้ามท่อนไม้
+                if (Math.abs(log.mesh.position.z - playerGroup.position.z) < 1.0) {
+                    if (playerLane === log.lane && !log.scored) {
+                        if (playerGroup.position.y > 0.5) {
+                            // กระโดดพ้น
+                            score += 5;
+                            log.scored = true;
+                            playSound('coin');
+                            updateUI();
+                        } else {
+                            // สะดุด (ลดความเร็วชั่วคราว ไม่หักคะแนน)
+                            GAME_SPEED = 0.2;
+                            setTimeout(() => GAME_SPEED = 0.4, 500);
+                            log.scored = true; // ไม่ให้สะดุดซ้ำ
+                            playSound('wrong');
+                        }
+                    }
+                }
+
+                if (log.mesh.position.z > 10) {
+                    scene.remove(log.mesh);
+                    activeLogs.splice(i, 1);
+                }
+            }
+
+            // เลื่อนประตูและตรวจคำตอบ (CRITICAL SECTION)
+            if (activeDoors.length > 0) {
+                let doorZ = activeDoors[0].mesh.position.z;
+                
+                // ถอยประตูมาหาตัวละคร
+                activeDoors.forEach(d => {
+                    d.mesh.position.z += GAME_SPEED;
+                });
+
+                // ตรวจคำตอบเมื่อประตูถึงเส้น collision
+                if (doorZ > COLLISION_Z - 0.5 && doorZ < COLLISION_Z + 1.0) {
+                    if (!isProcessingAnswer) {
+                        isProcessingAnswer = true; // ล็อกทันที ป้องกันคะแนนเด้งรัวๆ
+
+                        let correctDoor = activeDoors.find(d => d.isCorrect);
+                        
+                        if (playerLane === correctDoor.lane) {
+                            // --- ตอบถูก ---
+                            streak += 1;
+                            let bonus = Math.max(0, streak - 1) * 25;
+                            score += 100 + bonus + gameBuffs.bonusScore;
+                            correctTotal += 1;
+                            if (missCount === 0) firstTryCorrect += 1;
+                            
+                            playSound('correct');
+                            showFeedback("ยอดเยี่ยม! +คะแนน", "#4ADE80");
+                            
+                            // โชว์คำสมบูรณ์
+                            document.getElementById('word-ui').innerText = currentRoundWords[wordIndex].full;
+                            document.getElementById('word-ui').classList.add('text-green-600');
+                            
+                            // เปลี่ยนสีประตูเป็นสีทอง
+                            correctDoor.mesh.material.color.setHex(0xFFD700);
+                            
+                            updateUI();
+                            
+                            // ไปข้อต่อไป
+                            wordIndex++;
+                            missCount = 0;
+                            
+                            setTimeout(() => {
+                                document.getElementById('word-ui').classList.remove('text-green-600');
+                                checkGameState();
+                            }, 1000);
+
+                        } else {
+                            // --- ตอบผิด ---
+                            streak = 0;
+                            missCount += 1;
+                            playSound('wrong');
+                            
+                            let brokenDoor = activeDoors.find(d => d.lane === playerLane);
+                            if(brokenDoor) brokenDoor.mesh.material.color.setHex(0xEF4444); // สีแดง
+                            
+                            if (missCount < 3) {
+                                showFeedback("อุ๊ย! ลองใหม่", "#F87171");
+                                setTimeout(() => {
+                                    spawnRound(wordIndex); // โหลดประตูเดิม
+                                }, 800);
+                            } else {
+                                // พลาด 3 ครั้ง ข้ามให้ใจดี
+                                showFeedback("เฉลย: " + correctDoor.text, "#FBBF24");
+                                document.getElementById('word-ui').innerText = currentRoundWords[wordIndex].full;
+                                
+                                wordIndex++;
+                                missCount = 0;
+                                setTimeout(() => {
+                                    checkGameState();
+                                }, 1500);
+                            }
+                        }
+                    }
+                }
+
+                // ลบประตูที่วิ่งผ่านไปแล้ว (เพื่อจัดการเมโมรี่ ไม่เกี่ยวกับ logic เกมหลัก)
+                if (activeDoors[0] && activeDoors[0].mesh.position.z > 15) {
+                    activeDoors.forEach(d => scene.remove(d.mesh));
+                    activeDoors = [];
+                }
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        // เช็กจบเกมหรือไปต่อ
+        function checkGameState() {
+            if (wordIndex < 6 && wordIndex < currentRoundWords.length) {
+                spawnRound(wordIndex);
+            } else {
+                gameOverAndSaveScore();
+            }
+        }
+
+        // ---------------------------------------------------------
+        // 10. Start Game Trigger & Resizing
+        // ---------------------------------------------------------
+        document.getElementById('start-btn').addEventListener('click', () => {
+            if (!isPlayerDataLoaded) return;
+            
+            initAudio();
+            
+            // สุ่มเลือกคำ 6 คำจากฐานข้อมูล
+            currentRoundWords = [...vocabDB].sort(() => 0.5 - Math.random()).slice(0, 6);
+            
+            document.getElementById('start-screen').classList.add('hidden');
+            score = 0; streak = 0; wordIndex = 0; correctTotal = 0; firstTryCorrect = 0; missCount = 0;
+            updateUI();
+            
+            isGameRunning = true;
+            spawnRound(wordIndex);
+        });
+
+        // รองรับการย่อขยายหน้าจอ
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // เริ่ม Game Loop ทันทีที่โหลดโค้ดเสร็จ (แต่สถานะ isGameRunning=false จนกว่าจะกดเริ่ม)
+        animate();
+
+    </script>
+</body>
+</html>
