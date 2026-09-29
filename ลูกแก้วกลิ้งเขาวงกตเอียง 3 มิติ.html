@@ -59,8 +59,8 @@
         }
 
         #feedbackPopup {
-            position: fixed; top: 4.5rem; left: 50%; z-index: 60;
-            display: none; transform: translateX(-50%);
+            position: fixed; top: 50%; left: 50%; z-index: 60;
+            display: none; transform: translate(-50%, -50%);
         }
         
         /* D-Pad controls */
@@ -68,15 +68,17 @@
             background: rgba(255, 255, 255, 0.25); backdrop-filter: blur(4px);
             border: 2px solid rgba(255, 255, 255, 0.6);
             border-radius: 50%; display: flex; align-items: center; justify-content: center;
-            font-size: 1.5rem; color: white; pointer-events: auto;
+            font-size: 1.8rem; color: white; pointer-events: auto;
             transition: background 0.1s, transform 0.1s;
             user-select: none;
             -webkit-user-select: none;
             touch-action: manipulation;
         }
         .dpad-btn:active, .dpad-btn.active-touch { 
-            background: rgba(255, 255, 255, 0.7); 
+            background: rgba(255, 255, 255, 0.8); 
             transform: scale(0.9);
+            color: #1e40af;
+            border-color: #3b82f6;
         }
     </style>
 </head>
@@ -88,60 +90,69 @@
     <!-- HUD Layer -->
     <div class="hud-layer flex flex-col justify-between">
         
-        <!-- Top Single-Line Slim Capsule -->
-        <div class="w-full flex justify-center pt-4 sm:pt-6 px-4">
-            <div class="bg-white/95 backdrop-blur-md shadow-lg rounded-full px-4 py-2 flex items-center gap-3 sm:gap-6 text-sm sm:text-base border border-slate-200">
-                <div class="font-semibold text-blue-600 flex items-center gap-1">
-                    🎯 <span id="hudLevel">1/6</span>
+        <!-- แถบโจทย์และเวลาแบบใหม่ (Responsive Card) -->
+        <div class="w-full flex justify-center pt-3 sm:pt-5 px-3">
+            <div class="bg-white/95 backdrop-blur-md shadow-lg rounded-2xl p-3 sm:p-4 w-full max-w-lg border border-slate-200 pointer-events-auto">
+                <!-- ข้อมูลระดับและคะแนน -->
+                <div class="flex justify-between items-center mb-2 text-sm sm:text-base font-semibold border-b border-slate-100 pb-2">
+                    <div class="text-blue-600 flex items-center gap-1">
+                        🎯 ข้อ <span id="hudLevel">1/6</span>
+                    </div>
+                    <div class="text-amber-500 flex items-center gap-1">
+                        ⭐ คะแนน <span id="hudScore">0</span>
+                    </div>
                 </div>
-                <div class="w-[1px] h-4 bg-slate-300"></div>
-                <div class="font-medium text-slate-700 max-w-[200px] sm:max-w-md truncate" id="hudQuestion">
+                
+                <!-- ตัวโจทย์ (แสดงผลเต็มรูปแบบ) -->
+                <div class="text-center font-medium text-slate-800 text-lg sm:text-xl mb-3 leading-snug min-h-[3rem] flex items-center justify-center break-words" id="hudQuestion">
                     เตรียมพร้อม...
                 </div>
-                <div class="w-[1px] h-4 bg-slate-300"></div>
-                <div class="font-semibold text-amber-500 flex items-center gap-1">
-                    ⭐ <span id="hudScore">0</span>
-                </div>
-                <div class="w-[1px] h-4 bg-slate-300"></div>
-                <div class="font-semibold text-rose-500 flex items-center gap-1">
-                    ⏱️ <span id="hudTime">00:00</span>
+                
+                <!-- ตัวจับเวลา (อยู่ด้านล่างโจทย์ ชัดเจน) -->
+                <div class="flex justify-center">
+                    <div class="bg-rose-50 text-rose-600 px-5 py-1.5 rounded-full font-bold flex items-center gap-2 text-lg sm:text-xl border-2 border-rose-200 shadow-sm">
+                        ⏱️ เวลา <span id="hudTime">00:00</span>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Controls & Utility (Bottom) -->
-        <div class="p-6 flex justify-between items-end w-full">
-            <!-- D-Pad (Visible mainly on mobile/touch) -->
+        <div class="p-4 sm:p-6 flex justify-between items-end w-full pb-8">
+            <!-- D-Pad (ปรับให้กดง่ายขึ้นสำหรับมือถือ) -->
             <div class="relative w-40 h-40 opacity-95 sm:opacity-60">
-                <div class="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-12 dpad-btn" id="btnUp">▲</div>
-                <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-12 dpad-btn" id="btnDown">▼</div>
-                <div class="absolute top-1/2 left-0 -translate-y-1/2 w-12 h-12 dpad-btn" id="btnLeft">◀</div>
-                <div class="absolute top-1/2 right-0 -translate-y-1/2 w-12 h-12 dpad-btn" id="btnRight">▶</div>
+                <div class="absolute top-0 left-1/2 -translate-x-1/2 w-14 h-14 dpad-btn" id="btnUp">▲</div>
+                <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-14 h-14 dpad-btn" id="btnDown">▼</div>
+                <div class="absolute top-1/2 left-0 -translate-y-1/2 w-14 h-14 dpad-btn" id="btnLeft">◀</div>
+                <div class="absolute top-1/2 right-0 -translate-y-1/2 w-14 h-14 dpad-btn" id="btnRight">▶</div>
                 <div class="absolute top-1/2 left-1/2 -translate-y-1/2 -translate-x-1/2 w-12 h-12 dpad-btn text-[10px] font-bold bg-white/40" id="btnCenter">RESET</div>
             </div>
             
             <!-- Help Button -->
-            <button id="btnHelp" class="pointer-events-auto bg-white/90 shadow-lg w-12 h-12 rounded-full text-2xl font-bold text-blue-500 hover:scale-105 active:scale-95 transition-transform flex items-center justify-center">
+            <button id="btnHelp" class="pointer-events-auto bg-white/90 shadow-lg w-14 h-14 rounded-full text-2xl font-bold text-blue-500 hover:scale-105 active:scale-95 transition-transform flex items-center justify-center">
                 ?
             </button>
         </div>
     </div>
 
     <!-- Feedback Popup -->
-    <div id="feedbackPopup" class="px-6 py-3 rounded-full shadow-2xl text-lg font-bold text-white tracking-wide border-2">
+    <div id="feedbackPopup" class="px-8 py-4 rounded-full shadow-2xl text-xl font-bold text-white tracking-wide border-4">
         <!-- Content injected via JS -->
     </div>
 
     <!-- How To Play Modal -->
     <div id="modalHowToPlay" class="modal-overlay active">
         <div class="modal-card text-center">
-            <h2 class="text-2xl font-bold text-blue-600 mb-4">ลูกแก้วกลิ้งเขาวงกต ป.5</h2>
+            <h2 class="text-2xl font-bold text-blue-600 mb-4">ลูกแก้วเขาวงกต ป.5</h2>
             <div class="bg-blue-50 p-3 rounded-xl mb-4 text-sm text-slate-700 text-left">
-                <p class="mb-2"><strong>เป้าหมาย:</strong> กลิ้งลูกแก้วลงหลุมที่มีคำตอบตรงกับโจทย์ <strong>วิทยาศาสตร์ ป.5</strong> ให้ถูกต้อง!</p>
+                <p class="mb-2"><strong>เป้าหมาย:</strong> กลิ้งลูกแก้วลงหลุมที่มีคำตอบตรงกับโจทย์ให้ถูกต้อง!</p>
                 <ul class="list-disc pl-5 space-y-1">
-                    <li>💻 <strong>คอมพิวเตอร์:</strong> ใช้ปุ่มลูกศร หรือ W, A, S, D เพื่อเอียงกระดาน</li>
-                    <li>📱 <strong>มือถือ:</strong> กดปุ่มทิศทางบนหน้าจอ เพื่อควบคุมแรงโน้มถ่วง</li>
+                    <li>📱 <strong>มือถือ:</strong> เอียงมือถือเพื่อกลิ้ง หรือใช้ปุ่มลูกศรบนจอ</li>
+                    <li>💻 <strong>คอมพิวเตอร์:</strong> ใช้ปุ่มลูกศร หรือ W, A, S, D</li>
                 </ul>
+                <div class="mt-3 text-rose-600 font-semibold bg-rose-100 p-2 rounded-lg text-center">
+                    ⚡ ค่าเล่นรอบละ: 5 พลังงาน
+                </div>
             </div>
             
             <!-- ตัวแปร Player Buffs จาก Supabase -->
@@ -158,7 +169,6 @@
     <!-- Game Summary Modal -->
     <div id="modalGameSummary" class="modal-overlay">
         <div class="modal-card text-center relative overflow-hidden">
-            <!-- Confetti background effect -->
             <div class="absolute inset-0 pointer-events-none opacity-20" style="background-image: radial-gradient(circle, #3b82f6 2px, transparent 2px); background-size: 20px 20px;"></div>
             
             <h2 class="text-3xl font-bold text-slate-800 mb-2 relative z-10" id="summaryTitle">ยอดเยี่ยม!</h2>
@@ -189,31 +199,29 @@
     </div>
 
 <script>
-    // ----------------------------------------------------
-    // [1] SUPABASE & PLAYER DATA INITIALIZATION
-    // ----------------------------------------------------
     const SUPABASE_URL = 'https://gtcjixepijvcgvyfpqws.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0Y2ppeGVwaWp2Y2d2eWZwcXdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3MjU5NDYsImV4cCI6MjEwMTMwMTk0Nn0.FyEIl4r_LXhLeUxIzHusKzpnp7EdMvjADCdiLEMS-G8';
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    let player = { id: null, xp: 0, coins: 0, xp_math: 0, level: 1, inventory: [] };
-    let gameStats = { maxHearts: 3, attackPower: 10 }; // Kept for compatibility with prompt script
-    let gameId = 'sci_p5_maze'; // Default game ID
+    // ตัวแปรข้อมูลผู้เล่น (รองรับโครงสร้างใหม่: เพิ่ม energy และเปลี่ยนเป็น xp_science)
+    let player = { id: null, xp: 0, coins: 0, energy: 100, xp_science: 0, level: 1, inventory: [] };
+    let gameStats = { maxHearts: 3, attackPower: 10 }; 
+    const ENERGY_COST = 5; // ค่าพลังงานที่ใช้ต่อการเล่น 1 รอบ
+
+    // ตัวแปร URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const studentId = urlParams.get('student_id');
+    const gameId = urlParams.get('game_id') || 'sci_p5_maze';
+    const questId = urlParams.get('quest_id') || null;
 
     window.addEventListener('DOMContentLoaded', async () => {
-        const urlParams = new URLSearchParams(window.location.search);
-        const studentId = urlParams.get('student_id');
-        const urlGameId = urlParams.get('game_id');
-        
-        if (urlGameId) gameId = urlGameId;
-
         if (!studentId) {
             console.warn("ไม่พบรหัสผู้เล่น (student_id) ใน URL - เล่นในโหมดทดลอง");
             return;
         }
 
         try {
-            // โหลดข้อมูลคะแนนและไอเทม
+            // โหลดข้อมูลผู้เล่นและไอเทม
             const { data: studentData } = await supabaseClient.from('students').select('*').eq('id', studentId).single();
             const { data: invData } = await supabaseClient.from('student_inventory').select('items(item_name)').eq('student_id', studentId);
             
@@ -221,7 +229,9 @@
                 player.id = studentId;
                 player.xp = studentData.xp || 0;
                 player.coins = studentData.coins || 0;
-                player.xp_math = studentData.xp_math || 0; // Using xp_math as per requested script
+                player.energy = studentData.energy !== undefined ? studentData.energy : 100;
+                player.xp_science = studentData.xp_science || studentData.xp_math || 0; // รองรับทั้ง 2 กรณี
+                
                 player.level = Math.floor(player.xp / 500) + 1;
                 player.inventory = invData ? invData.map(i => i.items.item_name) : [];
 
@@ -233,28 +243,15 @@
     });
 
     function applyGameBuffs() {
-        let buffMsg = `เลเวล ${player.level} | `;
-        if (player.level >= 2) {
-            gameStats.maxHearts += 1;
-            buffMsg += "❤️+1 ";
-        }
-        if (player.xp_math >= 1000) {
-            gameStats.attackPower += 5;
-            buffMsg += "⚔️+5 ";
-        }
-        if (player.inventory.includes("ยาเพิ่มพลัง")) {
-            gameStats.maxHearts += 2;
-            buffMsg += "🧪+2 ";
-        }
+        let buffMsg = `เลเวล ${player.level} | พลังงาน: ⚡${player.energy} | `;
+        if (player.level >= 2) buffMsg += "❤️+1 ";
+        if (player.xp_science >= 1000) buffMsg += "⚔️+5 ";
         
         const buffEl = document.getElementById('playerBuffInfo');
-        buffEl.textContent = `ข้อมูลนักเรียน: ${buffMsg}`;
+        buffEl.textContent = `ข้อมูลผู้เล่น: ${buffMsg}`;
         buffEl.classList.remove('hidden');
     }
 
-    // ----------------------------------------------------
-    // [2] GAME QUESTIONS DATA (Science P.5)
-    // ----------------------------------------------------
     const GAME_QUESTIONS = [
         {
             q: "สถานะของสสารคืออะไร?", item: "🧊 น้ำแข็ง", answer: "solid",
@@ -304,7 +301,6 @@
         }
     ];
 
-    // Shuffle array utility
     function shuffleArray(array) {
         let curId = array.length;
         while (0 !== curId) {
@@ -317,31 +313,22 @@
         return array;
     }
 
-    // ----------------------------------------------------
-    // [3] WEB AUDIO API (Synthesized SFX)
-    // ----------------------------------------------------
     const sfx = {
-        ctx: null,
-        rollOsc: null,
-        rollGain: null,
+        ctx: null, rollOsc: null, rollGain: null,
         init: function() {
             if (this.ctx) return;
             this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-            
-            // Setup persistent rolling sound
             this.rollOsc = this.ctx.createOscillator();
             this.rollOsc.type = 'triangle';
             this.rollOsc.frequency.value = 60;
             this.rollGain = this.ctx.createGain();
             this.rollGain.gain.value = 0;
-            
             this.rollOsc.connect(this.rollGain);
             this.rollGain.connect(this.ctx.destination);
             this.rollOsc.start();
         },
         playRoll: function(speed) {
             if (!this.ctx) return;
-            // Map speed (0 to maxSpeed) to frequency (60 to 190) and gain (0 to 0.045)
             const speedRatio = Math.min(speed / physics.maxSpeed, 1.0);
             this.rollOsc.frequency.setTargetAtTime(60 + (130 * speedRatio), this.ctx.currentTime, 0.1);
             this.rollGain.gain.setTargetAtTime(speedRatio * 0.045, this.ctx.currentTime, 0.1);
@@ -352,15 +339,12 @@
         },
         playSuccess: function() {
             if (!this.ctx) return;
-            const freqs = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+            const freqs = [523.25, 659.25, 783.99, 1046.50];
             freqs.forEach((freq, i) => {
                 const osc = this.ctx.createOscillator();
                 const gain = this.ctx.createGain();
-                osc.type = 'sine';
-                osc.frequency.value = freq;
-                osc.connect(gain);
-                gain.connect(this.ctx.destination);
-                
+                osc.type = 'sine'; osc.frequency.value = freq;
+                osc.connect(gain); gain.connect(this.ctx.destination);
                 const time = this.ctx.currentTime + (i * 0.075);
                 osc.start(time);
                 gain.gain.setValueAtTime(0, time);
@@ -373,14 +357,10 @@
             if (!this.ctx) return;
             const osc = this.ctx.createOscillator();
             const gain = this.ctx.createGain();
-            osc.type = 'triangle';
-            osc.connect(gain);
-            gain.connect(this.ctx.destination);
-            
+            osc.type = 'triangle'; osc.connect(gain); gain.connect(this.ctx.destination);
             const time = this.ctx.currentTime;
             osc.frequency.setValueAtTime(260, time);
             osc.frequency.exponentialRampToValueAtTime(130, time + 0.22);
-            
             osc.start(time);
             gain.gain.setValueAtTime(0.2, time);
             gain.gain.exponentialRampToValueAtTime(0.01, time + 0.22);
@@ -388,13 +368,9 @@
         }
     };
 
-    // Unlock audio on first interaction
     document.addEventListener('pointerdown', () => sfx.init(), { once: true });
     document.addEventListener('keydown', () => sfx.init(), { once: true });
 
-    // ----------------------------------------------------
-    // [4] THREE.JS SETUP & LIGHTING
-    // ----------------------------------------------------
     const canvas = document.getElementById('canvas3d');
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -406,59 +382,48 @@
 
     const scene = new THREE.Scene();
     
-    // Environment Map Generator (Sky colors)
     function createEnvMap() {
         const envCanvas = document.createElement('canvas');
         envCanvas.width = 512; envCanvas.height = 256;
         const ctx = envCanvas.getContext('2d');
         const gradient = ctx.createLinearGradient(0, 0, 0, 256);
-        gradient.addColorStop(0, '#38bdf8'); // Sky blue
-        gradient.addColorStop(0.5, '#f472b6'); // Pastel pink
-        gradient.addColorStop(1, '#fb923c'); // Orange
+        gradient.addColorStop(0, '#38bdf8');
+        gradient.addColorStop(0.5, '#f472b6');
+        gradient.addColorStop(1, '#fb923c');
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, 512, 256);
-        
-        // Highlight (Sun/Light source reflection)
         ctx.fillStyle = '#ffffff';
-        ctx.beginPath();
-        ctx.ellipse(256, 64, 40, 20, 0, 0, Math.PI * 2);
-        ctx.fill();
-
+        ctx.beginPath(); ctx.ellipse(256, 64, 40, 20, 0, 0, Math.PI * 2); ctx.fill();
         const envTexture = new THREE.CanvasTexture(envCanvas);
         envTexture.mapping = THREE.EquirectangularReflectionMapping;
         return envTexture;
     }
     scene.environment = createEnvMap();
 
-    // Lighting
     const hemiLight = new THREE.HemisphereLight(0xfff5e6, 0x818cf8, 1.1);
     scene.add(hemiLight);
-
     const dirLightMain = new THREE.DirectionalLight(0xfff1dc, 1.25);
     dirLightMain.position.set(7, 22, 12);
     dirLightMain.castShadow = true;
     dirLightMain.shadow.camera.left = -10; dirLightMain.shadow.camera.right = 10;
     dirLightMain.shadow.camera.top = 15; dirLightMain.shadow.camera.bottom = -15;
-    dirLightMain.shadow.mapSize.width = 1024; dirLightMain.shadow.mapSize.height = 1024;
     scene.add(dirLightMain);
-
     const dirLightRim = new THREE.DirectionalLight(0xa5b4fc, 0.7);
     dirLightRim.position.set(-8, 14, -14);
     scene.add(dirLightRim);
 
-    // Camera (Top Safe Zone)
     const camera = new THREE.PerspectiveCamera(36, window.innerWidth / window.innerHeight, 0.1, 100);
     
     function updateCamera() {
         const aspect = window.innerWidth / window.innerHeight;
         camera.aspect = aspect;
         if (window.innerWidth < 640) {
-            // Mobile (Vertical)
-            camera.fov = 42;
-            camera.position.set(0, 22.0, 18.0);
-            camera.lookAt(0, -0.8, 1.2); // Look slightly lower to bring board down
+            // ปรับมุมกล้องมือถือให้ถอยห่างและกดต่ำลงนิดหน่อย เพื่อหลบการ์ดโจทย์ที่ใหญ่ขึ้น
+            camera.fov = 44;
+            camera.position.set(0, 24.0, 19.5); 
+            camera.lookAt(0, -1.5, 1.5); 
         } else {
-            // Desktop (Horizontal)
+            // Desktop 
             camera.fov = 36;
             camera.position.set(0, 18.2, 16.5);
             camera.lookAt(0, -0.5, 0.8);
@@ -471,238 +436,91 @@
         updateCamera();
     });
 
-    // ----------------------------------------------------
-    // [5] TEXTURE GENERATORS
-    // ----------------------------------------------------
     function createWoodTexture() {
-        const c = document.createElement('canvas');
-        c.width = 1024; c.height = 2048;
+        const c = document.createElement('canvas'); c.width = 1024; c.height = 2048;
         const ctx = c.getContext('2d');
-        
-        // Base wood color
         const grad = ctx.createLinearGradient(0, 0, 0, 2048);
-        grad.addColorStop(0, '#fef3c7'); // Honey warm pastel
-        grad.addColorStop(1, '#fde68a');
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, 1024, 2048);
-        
-        // Wood grain lines
-        ctx.strokeStyle = 'rgba(245, 158, 11, 0.18)'; // Amber faint
-        ctx.lineWidth = 2;
+        grad.addColorStop(0, '#fef3c7'); grad.addColorStop(1, '#fde68a');
+        ctx.fillStyle = grad; ctx.fillRect(0, 0, 1024, 2048);
+        ctx.strokeStyle = 'rgba(245, 158, 11, 0.18)'; ctx.lineWidth = 2;
         for(let i=0; i<100; i++) {
-            ctx.beginPath();
-            let x = Math.random() * 1024;
-            ctx.moveTo(x, 0);
-            ctx.lineTo(x + (Math.random()-0.5)*100, 2048);
-            ctx.stroke();
+            ctx.beginPath(); let x = Math.random() * 1024;
+            ctx.moveTo(x, 0); ctx.lineTo(x + (Math.random()-0.5)*100, 2048); ctx.stroke();
         }
-
-        // Neon gold runway
-        const cx = 512;
-        const runwayGrad = ctx.createLinearGradient(cx-45, 0, cx+45, 0);
-        runwayGrad.addColorStop(0, 'rgba(251, 191, 36, 0)');
-        runwayGrad.addColorStop(0.2, '#f59e0b');
-        runwayGrad.addColorStop(0.5, '#ffffff'); // bright center
-        runwayGrad.addColorStop(0.8, '#f59e0b');
-        runwayGrad.addColorStop(1, 'rgba(251, 191, 36, 0)');
-        
+        const cx = 512; const runwayGrad = ctx.createLinearGradient(cx-45, 0, cx+45, 0);
+        runwayGrad.addColorStop(0, 'rgba(251, 191, 36, 0)'); runwayGrad.addColorStop(0.2, '#f59e0b');
+        runwayGrad.addColorStop(0.5, '#ffffff'); runwayGrad.addColorStop(0.8, '#f59e0b'); runwayGrad.addColorStop(1, 'rgba(251, 191, 36, 0)');
         ctx.fillStyle = runwayGrad;
-        // Map Threejs coordinates to Canvas coordinates.
-        // Board Z: -11 to 11. Runway Y: 0.28 to 0.93 in normalized space? 
-        // Let's draw it from bottom (2048) to near top.
-        const startY = 2048 * 0.95; 
-        const endY = 2048 * 0.25;
+        const startY = 2048 * 0.95; const endY = 2048 * 0.25;
         ctx.fillRect(cx - 45, endY, 90, startY - endY);
-
-        // Y branching (just simple shapes)
-        ctx.beginPath(); ctx.moveTo(cx, endY); ctx.lineTo(cx-200, endY-200);
-        ctx.lineWidth = 20; ctx.strokeStyle = runwayGrad; ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(cx, endY); ctx.lineTo(cx+200, endY-200);
-        ctx.stroke();
-
-        const tex = new THREE.CanvasTexture(c);
-        tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
-        return tex;
-    }
-
-    function createMarbleTexture() {
-        const c = document.createElement('canvas');
-        c.width = 512; c.height = 512;
-        const ctx = c.getContext('2d');
-        
-        // Background gradient turquoise
-        const grad = ctx.createRadialGradient(256, 256, 0, 256, 256, 256);
-        grad.addColorStop(0, '#38bdf8');
-        grad.addColorStop(1, '#1e3a8a');
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, 512, 512);
-
-        // Candy ribbons
-        const colors = ['#f43f5e', '#fbbf24', '#a855f7', '#10b981', '#ffffff'];
-        ctx.lineWidth = 24;
-        colors.forEach((col, idx) => {
-            ctx.strokeStyle = col;
-            ctx.beginPath();
-            ctx.moveTo(0, idx * 80 + 50);
-            ctx.bezierCurveTo(200, idx*80 + 150, 300, idx*80 - 50, 512, idx*80 + 50);
-            ctx.stroke();
-        });
-
-        // Highlight
-        ctx.fillStyle = 'rgba(255,255,255,0.8)';
-        ctx.beginPath(); ctx.arc(150, 150, 40, 0, Math.PI*2); ctx.fill();
-
+        ctx.beginPath(); ctx.moveTo(cx, endY); ctx.lineTo(cx-200, endY-200); ctx.lineWidth = 20; ctx.strokeStyle = runwayGrad; ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(cx, endY); ctx.lineTo(cx+200, endY-200); ctx.stroke();
         return new THREE.CanvasTexture(c);
     }
 
-    function createDropShadowTexture() {
-        const c = document.createElement('canvas');
-        c.width = 256; c.height = 256;
+    function createMarbleTexture() {
+        const c = document.createElement('canvas'); c.width = 512; c.height = 512;
         const ctx = c.getContext('2d');
-        const grad = ctx.createRadialGradient(128, 128, 20, 128, 128, 128);
-        grad.addColorStop(0, 'rgba(0,0,0,0.8)');
-        grad.addColorStop(0.6, 'rgba(0,0,0,0.3)');
-        grad.addColorStop(1, 'rgba(0,0,0,0)');
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, 256, 256);
+        const grad = ctx.createRadialGradient(256, 256, 0, 256, 256, 256);
+        grad.addColorStop(0, '#38bdf8'); grad.addColorStop(1, '#1e3a8a');
+        ctx.fillStyle = grad; ctx.fillRect(0, 0, 512, 512);
+        const colors = ['#f43f5e', '#fbbf24', '#a855f7', '#10b981', '#ffffff'];
+        ctx.lineWidth = 24;
+        colors.forEach((col, idx) => {
+            ctx.strokeStyle = col; ctx.beginPath();
+            ctx.moveTo(0, idx * 80 + 50); ctx.bezierCurveTo(200, idx*80 + 150, 300, idx*80 - 50, 512, idx*80 + 50); ctx.stroke();
+        });
+        ctx.fillStyle = 'rgba(255,255,255,0.8)'; ctx.beginPath(); ctx.arc(150, 150, 40, 0, Math.PI*2); ctx.fill();
         return new THREE.CanvasTexture(c);
     }
 
     function createSignTexture(emoji, text, color) {
-        const c = document.createElement('canvas');
-        c.width = 384; c.height = 200;
+        const c = document.createElement('canvas'); c.width = 384; c.height = 200;
         const ctx = c.getContext('2d');
-        
-        // Background rounded rect
-        ctx.fillStyle = '#ffffff';
-        ctx.beginPath();
-        ctx.roundRect(14, 14, 356, 172, 24);
-        ctx.fill();
-        
-        // Border
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 14;
-        ctx.stroke();
-
-        // Emoji
-        ctx.font = '72px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(emoji, 192, 70);
-
-        // Text
-        ctx.font = 'bold 44px "Mitr", sans-serif';
-        ctx.fillStyle = '#1e293b';
-        ctx.fillText(text, 192, 145);
-
+        ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.roundRect(14, 14, 356, 172, 24); ctx.fill();
+        ctx.strokeStyle = color; ctx.lineWidth = 14; ctx.stroke();
+        ctx.font = '72px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(emoji, 192, 70);
+        ctx.font = 'bold 44px "Mitr", sans-serif'; ctx.fillStyle = '#1e293b'; ctx.fillText(text, 192, 145);
         return new THREE.CanvasTexture(c);
     }
 
-    // ----------------------------------------------------
-    // [6] BUILDING THE 3D OBJECTS
-    // ----------------------------------------------------
-    const boardPivot = new THREE.Group();
-    scene.add(boardPivot);
-
-    // Main Board
+    const boardPivot = new THREE.Group(); scene.add(boardPivot);
     const boardW = 8.6, boardH = 0.75, boardD = 22.0;
-    const boardMat = new THREE.MeshStandardMaterial({ 
-        map: createWoodTexture(), roughness: 0.7, metalness: 0.1 
-    });
+    const boardMat = new THREE.MeshStandardMaterial({ map: createWoodTexture(), roughness: 0.7, metalness: 0.1 });
     const boardMesh = new THREE.Mesh(new THREE.BoxGeometry(boardW, boardH, boardD), boardMat);
-    boardMesh.position.y = -0.375; // Top face is at y = 0
-    boardMesh.receiveShadow = true;
-    boardPivot.add(boardMesh);
+    boardMesh.position.y = -0.375; boardMesh.receiveShadow = true; boardPivot.add(boardMesh);
 
-    // Walls (Strawberry pastel)
     const wallThick = 0.48, wallHeight = 0.65;
     const wallMat = new THREE.MeshLambertMaterial({ color: 0xfb7185 });
-    
-    const wallL = new THREE.Mesh(new THREE.BoxGeometry(wallThick, wallHeight, boardD), wallMat);
-    wallL.position.set(-boardW/2 + wallThick/2, wallHeight/2 - boardH/2, 0); // Relative to board center
-    boardPivot.add(wallL);
-    
-    const wallR = new THREE.Mesh(new THREE.BoxGeometry(wallThick, wallHeight, boardD), wallMat);
-    wallR.position.set(boardW/2 - wallThick/2, wallHeight/2 - boardH/2, 0);
-    boardPivot.add(wallR);
-    
-    const wallT = new THREE.Mesh(new THREE.BoxGeometry(boardW, wallHeight, wallThick), wallMat);
-    wallT.position.set(0, wallHeight/2 - boardH/2, -boardD/2 + wallThick/2);
-    boardPivot.add(wallT);
-    
-    const wallB = new THREE.Mesh(new THREE.BoxGeometry(boardW, wallHeight, wallThick), wallMat);
-    wallB.position.set(0, wallHeight/2 - boardH/2, boardD/2 - wallThick/2);
-    boardPivot.add(wallB);
+    const wallL = new THREE.Mesh(new THREE.BoxGeometry(wallThick, wallHeight, boardD), wallMat); wallL.position.set(-boardW/2 + wallThick/2, wallHeight/2 - boardH/2, 0); boardPivot.add(wallL);
+    const wallR = new THREE.Mesh(new THREE.BoxGeometry(wallThick, wallHeight, boardD), wallMat); wallR.position.set(boardW/2 - wallThick/2, wallHeight/2 - boardH/2, 0); boardPivot.add(wallR);
+    const wallT = new THREE.Mesh(new THREE.BoxGeometry(boardW, wallHeight, wallThick), wallMat); wallT.position.set(0, wallHeight/2 - boardH/2, -boardD/2 + wallThick/2); boardPivot.add(wallT);
+    const wallB = new THREE.Mesh(new THREE.BoxGeometry(boardW, wallHeight, wallThick), wallMat); wallB.position.set(0, wallHeight/2 - boardH/2, boardD/2 - wallThick/2); boardPivot.add(wallB);
 
-    // Holes Group (attached to pivot so they rotate with board)
-    const holesGroup = new THREE.Group();
-    boardPivot.add(holesGroup);
-
-    // Marble System
+    const holesGroup = new THREE.Group(); boardPivot.add(holesGroup);
     const marbleRadius = 0.78;
-    const marbleGroup = new THREE.Group(); // Parent for position
-    scene.add(marbleGroup); // Keep marble in world space conceptually, physics maps to board
-    
-    const marbleMat = new THREE.MeshPhysicalMaterial({
-        map: createMarbleTexture(),
-        roughness: 0.08, metalness: 0.15,
-        clearcoat: 1.0, clearcoatRoughness: 0.04, reflectivity: 0.95
-    });
-    const marbleMesh = new THREE.Mesh(new THREE.SphereGeometry(marbleRadius, 48, 48), marbleMat);
-    marbleMesh.position.y = marbleRadius;
-    marbleMesh.castShadow = true;
-    marbleGroup.add(marbleMesh);
+    const marbleGroup = new THREE.Group(); scene.add(marbleGroup); 
+    const marbleMat = new THREE.MeshPhysicalMaterial({ map: createMarbleTexture(), roughness: 0.08, metalness: 0.15, clearcoat: 1.0, clearcoatRoughness: 0.04, reflectivity: 0.95 });
+    const marbleMesh = new THREE.Mesh(new THREE.SphereGeometry(marbleRadius, 48, 48), marbleMat); marbleMesh.position.y = marbleRadius; marbleMesh.castShadow = true; marbleGroup.add(marbleMesh);
+    const ringMesh = new THREE.Mesh(new THREE.RingGeometry(marbleRadius + 0.1, marbleRadius + 0.3, 32), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.45, side: THREE.DoubleSide }));
+    ringMesh.rotation.x = -Math.PI / 2; ringMesh.rotation.y = -Math.PI / 3; marbleGroup.add(ringMesh);
 
-    // Reflection Ring
-    const ringGeo = new THREE.RingGeometry(marbleRadius + 0.1, marbleRadius + 0.3, 32);
-    const ringMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.45, side: THREE.DoubleSide });
-    const ringMesh = new THREE.Mesh(ringGeo, ringMat);
-    ringMesh.rotation.x = -Math.PI / 2;
-    ringMesh.rotation.y = -Math.PI / 3;
-    marbleGroup.add(ringMesh);
-
-    // Drop shadow
-    const shadowMat = new THREE.MeshBasicMaterial({
-        map: createDropShadowTexture(), transparent: true, depthWrite: false, opacity: 0.8
-    });
-    const shadowMesh = new THREE.Mesh(new THREE.PlaneGeometry(2.18, 2.18), shadowMat);
-    shadowMesh.rotation.x = -Math.PI / 2;
-    shadowMesh.position.y = 0.02; // Just above board surface (y=0)
-    marbleGroup.add(shadowMesh);
-
-    // ----------------------------------------------------
-    // [7] PHYSICS & FINITE STATE MACHINE
-    // ----------------------------------------------------
     const physics = {
         maxTilt: 0.15, tiltDamp: 0.08, gravity: 0.018, friction: 0.962, maxSpeed: 0.22,
-        velX: 0, velZ: 0,
-        targetRotX: 0, targetRotZ: 0,
-        // Boundaries accounting for walls and marble radius
-        minX: -boardW/2 + wallThick + marbleRadius,
-        maxX:  boardW/2 - wallThick - marbleRadius,
-        minZ: -boardD/2 + wallThick + marbleRadius,
-        maxZ:  boardD/2 - wallThick - marbleRadius
+        velX: 0, velZ: 0, targetRotX: 0, targetRotZ: 0,
+        minX: -boardW/2 + wallThick + marbleRadius, maxX:  boardW/2 - wallThick - marbleRadius,
+        minZ: -boardD/2 + wallThick + marbleRadius, maxZ:  boardD/2 - wallThick - marbleRadius
     };
 
     const STATE = { IDLE: 0, PLAYING: 1, RESOLVING_CORRECT: 2, BOUNCING_WRONG: 3 };
     let playState = STATE.IDLE;
+    let currentHoles = [], currentQuestionIdx = 0, score = 0, bounceCooldown = 0, resolveAnimFrame = 0;
     
-    let currentHoles = [];
-    let currentQuestionIdx = 0;
-    let score = 0;
-    let bounceCooldown = 0;
-    let resolveAnimFrame = 0;
-
-    // ----------------------------------------------------
-    // [7.5] TIMER & DEVICE ORIENTATION (TILT)
-    // ----------------------------------------------------
-    let timeSeconds = 0;
-    let timerInterval = null;
-
+    // Timer System
+    let timeSeconds = 0; let timerInterval = null;
     function startTimer() {
         if(timerInterval) clearInterval(timerInterval);
         timerInterval = setInterval(() => {
-            // นับเวลาเฉพาะตอนที่เกมกำลังเล่นอยู่เท่านั้น (ตอนโหลดโจทย์หรือตอบถูกจะไม่นับ)
             if(playState === STATE.PLAYING || playState === STATE.BOUNCING_WRONG) {
                 timeSeconds++;
                 const m = String(Math.floor(timeSeconds / 60)).padStart(2, '0');
@@ -712,27 +530,18 @@
         }, 1000);
     }
     function stopTimer() { if(timerInterval) clearInterval(timerInterval); }
-    function resetTimer() {
-        timeSeconds = 0;
-        document.getElementById('hudTime').innerText = `00:00`;
-    }
+    function resetTimer() { timeSeconds = 0; document.getElementById('hudTime').innerText = `00:00`; }
 
+    // Gyroscope System
     const tilt = { active: false, x: 0, z: 0 };
-    let baseBeta = null;
-    let baseGamma = null;
+    let baseBeta = null, baseGamma = null;
 
     function requestDeviceOrientation() {
         if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-            // สำหรับ iOS 13+ ต้องขออนุญาตผู้ใช้ก่อน
-            DeviceOrientationEvent.requestPermission()
-                .then(permissionState => {
-                    if (permissionState === 'granted') {
-                        window.addEventListener('deviceorientation', handleOrientation);
-                    }
-                })
-                .catch(console.error);
+            DeviceOrientationEvent.requestPermission().then(state => {
+                if (state === 'granted') window.addEventListener('deviceorientation', handleOrientation);
+            }).catch(console.error);
         } else {
-            // สำหรับ Android และอุปกรณ์อื่นๆ
             window.addEventListener('deviceorientation', handleOrientation);
         }
     }
@@ -740,294 +549,156 @@
     function handleOrientation(event) {
         if (event.beta === null || event.gamma === null) return;
         tilt.active = true;
-
-        // บันทึกองศาแรกสุดที่เข้าเกมเป็น "จุดสมดุล" (Calibration)
-        if (baseBeta === null) {
-            baseBeta = event.beta;
-            baseGamma = event.gamma;
-        }
-
+        if (baseBeta === null) { baseBeta = event.beta; baseGamma = event.gamma; }
+        
         let diffBeta = event.beta - baseBeta;
         let diffGamma = event.gamma - baseGamma;
-
-        // ป้องกันมุมกระโดดข้ามแกน (Wrap-around)
-        if (diffBeta > 180) diffBeta -= 360;
-        if (diffBeta < -180) diffBeta += 360;
-        if (diffGamma > 90) diffGamma -= 180;
-        if (diffGamma < -90) diffGamma += 180;
-
-        const maxTiltAngle = 20; // หากเอียงเกิน 20 องศา จะถือเป็นความเร็วสูงสุด
+        if (diffBeta > 180) diffBeta -= 360; if (diffBeta < -180) diffBeta += 360;
+        if (diffGamma > 90) diffGamma -= 180; if (diffGamma < -90) diffGamma += 180;
         
+        const maxTiltAngle = 20; 
         diffBeta = Math.max(-maxTiltAngle, Math.min(maxTiltAngle, diffBeta));
         diffGamma = Math.max(-maxTiltAngle, Math.min(maxTiltAngle, diffGamma));
-
-        // แก้ไขทิศทาง Gyroscope ให้ตรงกับการก้มเงยมองจอ (Invert values)
+        // สลับทิศให้ตรงกับการก้มเงยมองหน้าจอ
         tilt.x = -(diffBeta / maxTiltAngle) * physics.maxTilt;
         tilt.z = -(diffGamma / maxTiltAngle) * physics.maxTilt; 
     }
+    function resetTiltCalibration() { baseBeta = null; baseGamma = null; }
 
-    function resetTiltCalibration() {
-        baseBeta = null;
-        baseGamma = null;
-    }
-
-    // Controls tracking
     const keys = { w: false, a: false, s: false, d: false, up: false, left: false, down: false, right: false };
     const dpads = { up: false, down: false, left: false, right: false };
-
     window.addEventListener('keydown', e => {
-        if(e.code === 'KeyW' || e.code === 'ArrowUp') keys.up = true;
-        if(e.code === 'KeyS' || e.code === 'ArrowDown') keys.down = true;
-        if(e.code === 'KeyA' || e.code === 'ArrowLeft') keys.left = true;
-        if(e.code === 'KeyD' || e.code === 'ArrowRight') keys.right = true;
+        if(e.code === 'KeyW' || e.code === 'ArrowUp') keys.up = true; if(e.code === 'KeyS' || e.code === 'ArrowDown') keys.down = true;
+        if(e.code === 'KeyA' || e.code === 'ArrowLeft') keys.left = true; if(e.code === 'KeyD' || e.code === 'ArrowRight') keys.right = true;
     });
     window.addEventListener('keyup', e => {
-        if(e.code === 'KeyW' || e.code === 'ArrowUp') keys.up = false;
-        if(e.code === 'KeyS' || e.code === 'ArrowDown') keys.down = false;
-        if(e.code === 'KeyA' || e.code === 'ArrowLeft') keys.left = false;
-        if(e.code === 'KeyD' || e.code === 'ArrowRight') keys.right = false;
+        if(e.code === 'KeyW' || e.code === 'ArrowUp') keys.up = false; if(e.code === 'KeyS' || e.code === 'ArrowDown') keys.down = false;
+        if(e.code === 'KeyA' || e.code === 'ArrowLeft') keys.left = false; if(e.code === 'KeyD' || e.code === 'ArrowRight') keys.right = false;
     });
 
-    // D-pad events (ปรับปรุงให้รองรับมือถือได้ลื่นไหลขึ้น 100%)
     const bindBtn = (id, key) => {
         const el = document.getElementById(id);
-        const press = (e) => { 
-            e.preventDefault(); dpads[key] = true; sfx.init(); 
-            el.classList.add('active-touch');
-        };
-        const release = (e) => { 
-            e.preventDefault(); dpads[key] = false; 
-            el.classList.remove('active-touch');
-        };
-        
-        // Touch events for mobile
-        el.addEventListener('touchstart', press, {passive: false});
-        el.addEventListener('touchend', release, {passive: false});
-        el.addEventListener('touchcancel', release, {passive: false});
-        
-        // Mouse events for desktop testing
-        el.addEventListener('mousedown', press);
-        el.addEventListener('mouseup', release);
-        el.addEventListener('mouseleave', release);
+        const press = (e) => { e.preventDefault(); dpads[key] = true; sfx.init(); el.classList.add('active-touch'); };
+        const release = (e) => { e.preventDefault(); dpads[key] = false; el.classList.remove('active-touch'); };
+        el.addEventListener('touchstart', press, {passive: false}); el.addEventListener('touchend', release, {passive: false});
+        el.addEventListener('touchcancel', release, {passive: false}); el.addEventListener('mousedown', press);
+        el.addEventListener('mouseup', release); el.addEventListener('mouseleave', release);
     };
     bindBtn('btnUp', 'up'); bindBtn('btnDown', 'down'); bindBtn('btnLeft', 'left'); bindBtn('btnRight', 'right');
     
     const centerBtn = document.getElementById('btnCenter');
     const centerPress = (e) => {
-        e.preventDefault(); sfx.init();
-        centerBtn.classList.add('active-touch');
-        if(playState === STATE.PLAYING) resetMarblePosition();
+        e.preventDefault(); sfx.init(); centerBtn.classList.add('active-touch');
+        if(playState === STATE.PLAYING || playState === STATE.BOUNCING_WRONG) resetMarblePosition();
     };
     const centerRelease = (e) => { e.preventDefault(); centerBtn.classList.remove('active-touch'); };
-    centerBtn.addEventListener('touchstart', centerPress, {passive: false});
-    centerBtn.addEventListener('touchend', centerRelease, {passive: false});
-    centerBtn.addEventListener('mousedown', centerPress);
-    centerBtn.addEventListener('mouseup', centerRelease);
-    centerBtn.addEventListener('mouseleave', centerRelease);
+    centerBtn.addEventListener('touchstart', centerPress, {passive: false}); centerBtn.addEventListener('touchend', centerRelease, {passive: false});
+    centerBtn.addEventListener('mousedown', centerPress); centerBtn.addEventListener('mouseup', centerRelease); centerBtn.addEventListener('mouseleave', centerRelease);
 
     function resetMarblePosition() {
-        marbleGroup.position.set(0, 0, boardD/2 - 3); // Start near bottom
+        marbleGroup.position.set(0, 0, boardD/2 - 3);
         physics.velX = 0; physics.velZ = 0;
         marbleGroup.scale.set(1, 1, 1);
         marbleMesh.position.y = marbleRadius;
-        shadowMesh.visible = true;
         ringMesh.visible = true;
     }
 
-    // ----------------------------------------------------
-    // [8] GAME LOGIC & LEVEL MANAGEMENT
-    // ----------------------------------------------------
-    
     function loadLevel(index) {
-        if (index >= GAME_QUESTIONS.length) {
-            endGame();
-            return;
-        }
-        
+        if (index >= GAME_QUESTIONS.length) { endGame(); return; }
         const qData = GAME_QUESTIONS[index];
-        
-        // Update HUD
         document.getElementById('hudLevel').innerText = `${index + 1}/${GAME_QUESTIONS.length}`;
         document.getElementById('hudQuestion').innerText = `${qData.q} ${qData.item}`;
         
-        // Clear old holes
-        while(holesGroup.children.length > 0) { 
-            holesGroup.remove(holesGroup.children[0]); 
-        }
+        while(holesGroup.children.length > 0) holesGroup.remove(holesGroup.children[0]); 
         currentHoles = [];
-
-        // Shuffle choices
         const choices = shuffleArray([...qData.choices]);
         const isThree = choices.length === 3;
-        const hZ = -boardD/2 + 3.8; // -7.2
-        
+        const hZ = -boardD/2 + 3.8; 
         const positions = isThree ? [-2.7, 0, 2.7] : [-2.2, 2.2];
 
         choices.forEach((choice, i) => {
             const hX = positions[i];
             const hColor = parseInt(choice.color.replace('#', '0x'));
+            const hGrp = new THREE.Group(); hGrp.position.set(hX, 0, hZ);
             
-            // Hole Group
-            const hGrp = new THREE.Group();
-            hGrp.position.set(hX, 0, hZ);
+            const torusMesh = new THREE.Mesh(new THREE.TorusGeometry(1.05, 0.28, 24, 48), new THREE.MeshLambertMaterial({ color: hColor }));
+            torusMesh.rotation.x = Math.PI / 2; torusMesh.position.y = 0.16; hGrp.add(torusMesh);
             
-            // Mouth (Torus) - y=0.16
-            const torusGeo = new THREE.TorusGeometry(1.05, 0.28, 24, 48);
-            const torusMat = new THREE.MeshLambertMaterial({ color: hColor });
-            const torusMesh = new THREE.Mesh(torusGeo, torusMat);
-            torusMesh.rotation.x = Math.PI / 2;
-            torusMesh.position.y = 0.16;
-            hGrp.add(torusMesh);
-            
-            // Bottom (Dark) - y=0.03
-            const circleGeo = new THREE.CircleGeometry(0.98, 32);
-            // Deep blue-black
-            const circleMat = new THREE.MeshBasicMaterial({ color: 0x0f172a }); 
-            const circleMesh = new THREE.Mesh(circleGeo, circleMat);
-            circleMesh.rotation.x = -Math.PI / 2;
-            circleMesh.position.y = 0.03;
-            hGrp.add(circleMesh);
+            const circleMesh = new THREE.Mesh(new THREE.CircleGeometry(0.98, 32), new THREE.MeshBasicMaterial({ color: 0x0f172a }));
+            circleMesh.rotation.x = -Math.PI / 2; circleMesh.position.y = 0.03; hGrp.add(circleMesh);
 
-            // Sign - Face camera slightly
-            const signMat = new THREE.MeshBasicMaterial({ 
-                map: createSignTexture(choice.emoji, choice.text, choice.color),
-                transparent: true
-            });
-            const signMesh = new THREE.Mesh(new THREE.PlaneGeometry(1.9, 0.95), signMat);
-            // Position above and slightly behind hole center
-            signMesh.position.set(0, 0.55, 1.8); 
-            signMesh.rotation.x = -0.36; // Tilt back
-            hGrp.add(signMesh);
+            const signMesh = new THREE.Mesh(new THREE.PlaneGeometry(1.9, 0.95), new THREE.MeshBasicMaterial({ map: createSignTexture(choice.emoji, choice.text, choice.color), transparent: true }));
+            signMesh.position.set(0, 0.55, 1.8); signMesh.rotation.x = -0.36; hGrp.add(signMesh);
 
             holesGroup.add(hGrp);
-
-            currentHoles.push({
-                x: hX, z: hZ,
-                id: choice.id,
-                isCorrect: choice.id === qData.answer
-            });
+            currentHoles.push({ x: hX, z: hZ, id: choice.id, isCorrect: choice.id === qData.answer });
         });
-
         resetMarblePosition();
         playState = STATE.PLAYING;
     }
 
     function showFeedback(isCorrect) {
         const fb = document.getElementById('feedbackPopup');
-        fb.style.display = 'block';
-        fb.classList.remove('pop-anim');
-        void fb.offsetWidth; // trigger reflow
-        
+        fb.style.display = 'block'; fb.classList.remove('pop-anim'); void fb.offsetWidth;
         if (isCorrect) {
             fb.innerHTML = "🎉 ถูกต้องแล้วจ้า! เก่งมาก ⭐";
-            fb.className = "px-6 py-3 rounded-full shadow-2xl text-lg font-bold text-white tracking-wide border-2 border-green-300 bg-gradient-to-r from-green-500 to-emerald-500 pop-anim";
+            fb.className = "px-8 py-4 rounded-full shadow-2xl text-xl font-bold text-white tracking-wide border-4 border-green-300 bg-gradient-to-r from-green-500 to-emerald-500 pop-anim";
         } else {
             fb.innerHTML = "💜 ลองใหม่นะ! กลิ้งอีกรอบได้เลย";
-            fb.className = "px-6 py-3 rounded-full shadow-2xl text-lg font-bold text-white tracking-wide border-2 border-rose-300 bg-gradient-to-r from-rose-500 to-pink-500 pop-anim";
+            fb.className = "px-8 py-4 rounded-full shadow-2xl text-xl font-bold text-white tracking-wide border-4 border-rose-300 bg-gradient-to-r from-rose-500 to-pink-500 pop-anim";
         }
-
-        if(isCorrect) {
-            setTimeout(() => {
-                fb.style.display = 'none';
-                currentQuestionIdx++;
-                loadLevel(currentQuestionIdx);
-            }, 1500);
-        } else {
-            setTimeout(() => { fb.style.display = 'none'; }, 1500);
-        }
+        setTimeout(() => {
+            fb.style.display = 'none';
+            if(isCorrect) { currentQuestionIdx++; loadLevel(currentQuestionIdx); }
+        }, 1500);
     }
-
-    // ----------------------------------------------------
-    // [9] MAIN ANIMATION LOOP
-    // ----------------------------------------------------
     
     function animate() {
         requestAnimationFrame(animate);
-
-        // Calculate Target Rotation based on inputs
-        let isUp = keys.up || dpads.up;
-        let isDown = keys.down || dpads.down;
-        let isLeft = keys.left || dpads.left;
-        let isRight = keys.right || dpads.right;
+        let isUp = keys.up || dpads.up, isDown = keys.down || dpads.down, isLeft = keys.left || dpads.left, isRight = keys.right || dpads.right;
 
         physics.targetRotX = 0; physics.targetRotZ = 0;
-        
         if(playState === STATE.PLAYING || playState === STATE.BOUNCING_WRONG) {
-            // ใช้ค่าจากการเอียงมือถือ (ถ้ามี)
-            if (tilt.active) {
-                physics.targetRotX = tilt.x;
-                physics.targetRotZ = tilt.z;
-            }
-            // ปุ่่มกด D-Pad / Keyboard จะเขียนทับการเอียงมือถือ
-            if (isLeft) physics.targetRotZ = physics.maxTilt;
-            if (isRight) physics.targetRotZ = -physics.maxTilt;
-            if (isUp) physics.targetRotX = -physics.maxTilt;
-            if (isDown) physics.targetRotX = physics.maxTilt;
+            if (tilt.active) { physics.targetRotX = tilt.x; physics.targetRotZ = tilt.z; }
+            if (isLeft) physics.targetRotZ = physics.maxTilt; if (isRight) physics.targetRotZ = -physics.maxTilt;
+            if (isUp) physics.targetRotX = -physics.maxTilt; if (isDown) physics.targetRotX = physics.maxTilt;
         }
 
-        // Lerp Board Rotation
         boardPivot.rotation.x += (physics.targetRotX - boardPivot.rotation.x) * physics.tiltDamp;
         boardPivot.rotation.z += (physics.targetRotZ - boardPivot.rotation.z) * physics.tiltDamp;
 
         if (playState === STATE.PLAYING || playState === STATE.BOUNCING_WRONG) {
-            // Apply Gravity Acceleration
-            let accZ = boardPivot.rotation.x * physics.gravity * 2.2;
-            let accX = -boardPivot.rotation.z * physics.gravity * 2.2;
-            
-            physics.velX += accX;
-            physics.velZ += accZ;
+            physics.velX += -boardPivot.rotation.z * physics.gravity * 2.2;
+            physics.velZ += boardPivot.rotation.x * physics.gravity * 2.2;
+            physics.velX *= physics.friction; physics.velZ *= physics.friction;
 
-            // Apply Friction
-            physics.velX *= physics.friction;
-            physics.velZ *= physics.friction;
-
-            // Speed Limit
             let speed = Math.hypot(physics.velX, physics.velZ);
             if (speed > physics.maxSpeed) {
                 let ratio = physics.maxSpeed / speed;
-                physics.velX *= ratio; physics.velZ *= ratio;
-                speed = physics.maxSpeed;
+                physics.velX *= ratio; physics.velZ *= ratio; speed = physics.maxSpeed;
             }
-
             sfx.playRoll(speed);
 
             let nextX = marbleGroup.position.x + physics.velX;
             let nextZ = marbleGroup.position.z + physics.velZ;
 
-            // Hole Interaction Logic
             if (playState === STATE.PLAYING && bounceCooldown <= 0) {
                 for (let hole of currentHoles) {
-                    let dx = nextX - hole.x;
-                    let dz = nextZ - hole.z;
-                    let dist = Math.hypot(dx, dz);
-
-                    // Funnel effect
+                    let dx = nextX - hole.x, dz = nextZ - hole.z, dist = Math.hypot(dx, dz);
                     if (dist < 2.1) {
                         let pull = 0.022 * (1 - dist / 2.1);
-                        physics.velX -= (dx / dist) * pull;
-                        physics.velZ -= (dz / dist) * pull;
+                        physics.velX -= (dx / dist) * pull; physics.velZ -= (dz / dist) * pull;
                     }
-
-                    // Sink condition (Trigger resolve)
                     if (dist < 1.05 * 0.8) {
                         if (hole.isCorrect) {
-                            playState = STATE.RESOLVING_CORRECT;
-                            resolveAnimFrame = 0;
-                            score++;
-                            document.getElementById('hudScore').innerText = score;
-                            sfx.stopRoll();
-                            sfx.playSuccess();
-                            showFeedback(true);
-                            // Snap to hole center for animation
+                            playState = STATE.RESOLVING_CORRECT; resolveAnimFrame = 0;
+                            score++; document.getElementById('hudScore').innerText = score;
+                            sfx.stopRoll(); sfx.playSuccess(); showFeedback(true);
                             nextX = hole.x; nextZ = hole.z;
                         } else {
-                            playState = STATE.BOUNCING_WRONG;
-                            bounceCooldown = 45; // Frames
-                            sfx.playBounceWrong();
-                            showFeedback(false);
-                            // Bounce back down
-                            physics.velZ = 0.28; 
-                            physics.velX *= -0.5;
+                            playState = STATE.BOUNCING_WRONG; bounceCooldown = 45;
+                            sfx.playBounceWrong(); showFeedback(false);
+                            physics.velZ = 0.28; physics.velX *= -0.5;
                         }
                         break;
                     }
@@ -1036,87 +707,53 @@
 
             if (bounceCooldown > 0) {
                 bounceCooldown--;
-                // คืนค่าสถานะให้กลับมาเล่นต่อได้เมื่อหมดคูลดาวน์เด้งออก (แก้ไขบั๊กติดหลุมผิด)
-                if (bounceCooldown === 0 && playState === STATE.BOUNCING_WRONG) {
-                    playState = STATE.PLAYING;
-                }
+                if (bounceCooldown === 0 && playState === STATE.BOUNCING_WRONG) playState = STATE.PLAYING;
             }
 
-            // Wall Collisions
             if (nextX < physics.minX) { nextX = physics.minX; physics.velX *= -0.3; }
             if (nextX > physics.maxX) { nextX = physics.maxX; physics.velX *= -0.3; }
             if (nextZ < physics.minZ) { nextZ = physics.minZ; physics.velZ *= -0.3; }
             if (nextZ > physics.maxZ) { nextZ = physics.maxZ; physics.velZ *= -0.3; }
 
-            marbleGroup.position.x = nextX;
-            marbleGroup.position.z = nextZ;
-
-            // Visual Rotation of Marble
-            marbleMesh.rotation.z -= physics.velX / marbleRadius;
-            marbleMesh.rotation.x += physics.velZ / marbleRadius;
+            marbleGroup.position.x = nextX; marbleGroup.position.z = nextZ;
+            marbleMesh.rotation.z -= physics.velX / marbleRadius; marbleMesh.rotation.x += physics.velZ / marbleRadius;
         } 
         else if (playState === STATE.RESOLVING_CORRECT) {
-            // Sinking Animation
             if (resolveAnimFrame < 22) {
                 let scale = 1 - (resolveAnimFrame / 22);
                 marbleGroup.scale.set(scale, scale, scale);
-                // Sink into hole
                 marbleMesh.position.y = marbleRadius * scale - (resolveAnimFrame/22)*0.5;
-                shadowMesh.visible = false;
-                ringMesh.visible = false;
-                resolveAnimFrame++;
+                ringMesh.visible = false; resolveAnimFrame++;
             }
-        }
-        else {
-            sfx.stopRoll();
-        }
+        } else { sfx.stopRoll(); }
 
         renderer.render(scene, camera);
     }
-
     requestAnimationFrame(animate);
 
-    // ----------------------------------------------------
-    // [10] SUPABASE SCORE SAVING & UI MODALS
-    // ----------------------------------------------------
-    
     document.getElementById('btnStartGame').addEventListener('click', () => {
         document.getElementById('modalHowToPlay').classList.remove('active');
-        sfx.init();
-        requestDeviceOrientation(); // ขออนุญาตการใช้เซ็นเซอร์
-        resetTiltCalibration(); // รีเซ็ตจุดศูนย์ถ่วงให้ตรงกับที่ผู้เล่นถืออยู่
-        currentQuestionIdx = 0;
-        score = 0;
-        document.getElementById('hudScore').innerText = score;
-        resetTimer();
-        startTimer();
-        loadLevel(currentQuestionIdx);
+        sfx.init(); requestDeviceOrientation(); resetTiltCalibration(); 
+        currentQuestionIdx = 0; score = 0; document.getElementById('hudScore').innerText = score;
+        resetTimer(); startTimer(); loadLevel(currentQuestionIdx);
     });
 
     document.getElementById('btnHelp').addEventListener('click', () => {
-        document.getElementById('modalHowToPlay').classList.add('active');
-        playState = STATE.IDLE; // Pause logic
+        document.getElementById('modalHowToPlay').classList.add('active'); playState = STATE.IDLE; 
     });
 
     document.getElementById('btnRestart').addEventListener('click', () => {
         document.getElementById('modalGameSummary').classList.remove('active');
-        resetTiltCalibration(); // รีเซ็ตจุดศูนย์ถ่วงใหม่ตอนเริ่มรอบใหม่
-        currentQuestionIdx = 0;
-        score = 0;
-        document.getElementById('hudScore').innerText = score;
-        resetTimer();
-        startTimer();
-        loadLevel(currentQuestionIdx);
+        resetTiltCalibration(); currentQuestionIdx = 0; score = 0; document.getElementById('hudScore').innerText = score;
+        resetTimer(); startTimer(); loadLevel(currentQuestionIdx);
     });
 
-    // Modified to fulfill both the prompt requirement (save to `scores`) 
-    // and the code snippet logic (update `students` table).
+    // ระบบเซฟคะแนนแบบใหม่ (แยกตาราง 2 ส่วน และป้องกันพังเมื่อตารางใดตารางนึงไม่อัปเดต)
     async function gameOverAndSaveScore(finalScore) {
         const modal = document.getElementById('modalGameSummary');
         const statusEl = document.getElementById('saveStatus');
         const btnHub = document.getElementById('btnBackToHub');
         
-        // Show Modal setup
         modal.classList.add('active');
         document.getElementById('finalScore').innerHTML = `${finalScore} <span class="text-xl text-slate-500 font-medium">/ 6</span>`;
         
@@ -1127,7 +764,7 @@
         let stars = finalScore >= 5 ? 3 : (finalScore >= 3 ? 2 : 1);
         let starHtml = '';
         for(let i=0; i<3; i++) {
-            starHtml += `<div class="text-4xl ${i < stars ? 'text-yellow-400 drop-shadow-md' : 'text-slate-200'}">⭐</div>`;
+            starHtml += `<div class="text-5xl ${i < stars ? 'text-yellow-400 drop-shadow-md' : 'text-slate-200'}">⭐</div>`;
         }
         document.getElementById('starContainer').innerHTML = starHtml;
 
@@ -1140,60 +777,80 @@
         statusEl.innerText = "กำลังบันทึกคะแนน...";
         statusEl.className = "mb-4 text-sm font-medium text-blue-600 animate-pulse";
 
+        // สูตรคำนวณผลตอบแทน
+        const earnedCoins = finalScore * 5;
+        const earnedXP = finalScore * 10;
+        const earnedScienceXP = finalScore * 15;
+        const newEnergy = Math.max(0, player.energy - ENERGY_COST);
+
+        let errorMessages = [];
+
+        // ส่วนที่ 1: บันทึกประวัติลงตาราง game_logs (เปลี่ยนจาก scores)
         try {
-            // 1. บันทึกลงตาราง scores ตามเงื่อนไขระบบบังคับ
-            const { error: scoreError } = await supabaseClient
-                .from('scores')
-                .insert([
-                    { student_id: player.id, game_id: gameId, score: finalScore }
-                ]);
+            const { error: logError } = await supabaseClient
+                .from('game_logs')
+                .insert([{ 
+                    student_id: player.id, 
+                    game_id: gameId, 
+                    score: finalScore,
+                    earned_xp: earnedXP,
+                    earned_coins: earnedCoins,
+                    quest_id: questId // หากเข้าจากเควสจะบันทึกไว้
+                }]);
             
-            if (scoreError) throw scoreError;
+            if (logError) {
+                console.error("Game Logs Error:", logError);
+                errorMessages.push("บันทึกประวัติการเล่นล้มเหลว (เช็คตาราง game_logs)");
+            }
+        } catch(e) {
+            errorMessages.push("เชื่อมต่อฐานข้อมูล game_logs ไม่ได้");
+        }
 
-            // 2. อัปเดตข้อมูลรวมใน students ตามโค้ดที่แนบมา
-            const earnedCoins = finalScore * 5;
-            const earnedXP = finalScore * 10;
-            const earnedMathXP = finalScore * 15; // ใช้ตัวแปรตามโค้ดเดิม
-
+        // ส่วนที่ 2: อัปเดตสถิติรวมของนักเรียนในตาราง students (รวมถึงพลังงาน)
+        try {
             const { error: updateError } = await supabaseClient
                 .from('students')
                 .update({ 
                     coins: player.coins + earnedCoins, 
                     xp: player.xp + earnedXP, 
-                    xp_math: player.xp_math + earnedMathXP 
+                    energy: newEnergy, // หักพลังงาน
+                    xp_science: player.xp_science + earnedScienceXP // เพิ่มค่าประสบการณ์สายวิทย์
                 })
                 .eq('id', player.id);
 
-            if (updateError) throw updateError;
-
-            // Success
-            statusEl.innerText = "✅ บันทึกคะแนนสำเร็จ!";
-            statusEl.className = "mb-4 text-sm font-bold text-emerald-600";
-            btnHub.classList.remove('hidden'); // แสดงปุ่มกลับศูนย์รวมเกม
-
-            // Update local player state
-            player.coins += earnedCoins;
-            player.xp += earnedXP;
-            player.xp_math += earnedMathXP;
-
-        } catch (error) {
-            console.error("Save Error:", error);
-            statusEl.innerText = "❌ บันทึกคะแนนไม่สำเร็จ กรุณาตรวจสอบอินเทอร์เน็ต";
-            statusEl.className = "mb-4 text-sm font-bold text-rose-600";
-            btnHub.classList.remove('hidden'); // Allow exit even on fail
+            if (updateError) {
+                console.error("Update Students Error:", updateError);
+                errorMessages.push("อัปเดตเหรียญ/XP ล้มเหลว (เช็คตาราง students หรือสิทธิ์ RLS)");
+            } else {
+                // อัปเดตสถานะในตัวแปรเผื่อเล่นรอบต่อไป
+                player.coins += earnedCoins;
+                player.xp += earnedXP;
+                player.energy = newEnergy;
+                player.xp_science += earnedScienceXP;
+            }
+        } catch(e) {
+            errorMessages.push("เชื่อมต่อฐานข้อมูล students ไม่ได้");
         }
+
+        // สรุปผลการทำงานแสดงบนหน้าจอ
+        if (errorMessages.length === 0) {
+            statusEl.innerText = "✅ บันทึกข้อมูลสำเร็จ! หัก " + ENERGY_COST + " พลังงาน";
+            statusEl.className = "mb-4 text-sm font-bold text-emerald-600";
+        } else {
+            statusEl.innerText = "⚠️ พบปัญหาบางส่วน: " + errorMessages.join(", ");
+            statusEl.className = "mb-4 text-xs font-bold text-rose-600";
+        }
+        
+        btnHub.classList.remove('hidden');
     }
 
     function endGame() {
         playState = STATE.IDLE;
-        sfx.stopRoll();
-        stopTimer();
+        sfx.stopRoll(); stopTimer();
         gameOverAndSaveScore(score);
     }
 
-    document.getElementById('btnBackToHub').addEventListener('click', () => {
-        window.location.href = 'index.html';
-    });
+    document.getElementById('btnBackToHub').addEventListener('click', () => { window.location.href = 'index.html'; });
 
 </script>
 </body>
