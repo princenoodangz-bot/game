@@ -65,13 +65,19 @@
         
         /* D-Pad controls */
         .dpad-btn {
-            background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(4px);
-            border: 2px solid rgba(255, 255, 255, 0.4);
+            background: rgba(255, 255, 255, 0.25); backdrop-filter: blur(4px);
+            border: 2px solid rgba(255, 255, 255, 0.6);
             border-radius: 50%; display: flex; align-items: center; justify-content: center;
             font-size: 1.5rem; color: white; pointer-events: auto;
-            transition: background 0.1s;
+            transition: background 0.1s, transform 0.1s;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
         }
-        .dpad-btn:active { background: rgba(255, 255, 255, 0.5); }
+        .dpad-btn:active, .dpad-btn.active-touch { 
+            background: rgba(255, 255, 255, 0.7); 
+            transform: scale(0.9);
+        }
     </style>
 </head>
 <body class="font-mitr text-slate-800">
@@ -106,12 +112,12 @@
         <!-- Controls & Utility (Bottom) -->
         <div class="p-6 flex justify-between items-end w-full">
             <!-- D-Pad (Visible mainly on mobile/touch) -->
-            <div class="relative w-32 h-32 opacity-80 sm:opacity-50">
-                <div class="absolute top-0 left-1/2 -translate-x-1/2 w-10 h-10 dpad-btn" id="btnUp">▲</div>
-                <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-10 h-10 dpad-btn" id="btnDown">▼</div>
-                <div class="absolute top-1/2 left-0 -translate-y-1/2 w-10 h-10 dpad-btn" id="btnLeft">◀</div>
-                <div class="absolute top-1/2 right-0 -translate-y-1/2 w-10 h-10 dpad-btn" id="btnRight">▶</div>
-                <div class="absolute top-1/2 left-1/2 -translate-y-1/2 -translate-x-1/2 w-10 h-10 dpad-btn text-sm font-bold bg-white/30" id="btnCenter">●</div>
+            <div class="relative w-40 h-40 opacity-95 sm:opacity-60">
+                <div class="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-12 dpad-btn" id="btnUp">▲</div>
+                <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-12 dpad-btn" id="btnDown">▼</div>
+                <div class="absolute top-1/2 left-0 -translate-y-1/2 w-12 h-12 dpad-btn" id="btnLeft">◀</div>
+                <div class="absolute top-1/2 right-0 -translate-y-1/2 w-12 h-12 dpad-btn" id="btnRight">▶</div>
+                <div class="absolute top-1/2 left-1/2 -translate-y-1/2 -translate-x-1/2 w-12 h-12 dpad-btn text-[10px] font-bold bg-white/40" id="btnCenter">RESET</div>
             </div>
             
             <!-- Help Button -->
@@ -755,7 +761,8 @@
         diffBeta = Math.max(-maxTiltAngle, Math.min(maxTiltAngle, diffBeta));
         diffGamma = Math.max(-maxTiltAngle, Math.min(maxTiltAngle, diffGamma));
 
-        tilt.x = (diffBeta / maxTiltAngle) * physics.maxTilt;
+        // แก้ไขทิศทาง Gyroscope ให้ตรงกับการก้มเงยมองจอ (Invert values)
+        tilt.x = -(diffBeta / maxTiltAngle) * physics.maxTilt;
         tilt.z = -(diffGamma / maxTiltAngle) * physics.maxTilt; 
     }
 
@@ -781,19 +788,42 @@
         if(e.code === 'KeyD' || e.code === 'ArrowRight') keys.right = false;
     });
 
-    // D-pad events
+    // D-pad events (ปรับปรุงให้รองรับมือถือได้ลื่นไหลขึ้น 100%)
     const bindBtn = (id, key) => {
         const el = document.getElementById(id);
-        el.addEventListener('pointerdown', (e) => { e.preventDefault(); dpads[key] = true; sfx.init(); });
-        el.addEventListener('pointerup', (e) => { e.preventDefault(); dpads[key] = false; });
-        el.addEventListener('pointerleave', (e) => { e.preventDefault(); dpads[key] = false; });
+        const press = (e) => { 
+            e.preventDefault(); dpads[key] = true; sfx.init(); 
+            el.classList.add('active-touch');
+        };
+        const release = (e) => { 
+            e.preventDefault(); dpads[key] = false; 
+            el.classList.remove('active-touch');
+        };
+        
+        // Touch events for mobile
+        el.addEventListener('touchstart', press, {passive: false});
+        el.addEventListener('touchend', release, {passive: false});
+        el.addEventListener('touchcancel', release, {passive: false});
+        
+        // Mouse events for desktop testing
+        el.addEventListener('mousedown', press);
+        el.addEventListener('mouseup', release);
+        el.addEventListener('mouseleave', release);
     };
     bindBtn('btnUp', 'up'); bindBtn('btnDown', 'down'); bindBtn('btnLeft', 'left'); bindBtn('btnRight', 'right');
     
-    document.getElementById('btnCenter').addEventListener('pointerdown', (e) => {
+    const centerBtn = document.getElementById('btnCenter');
+    const centerPress = (e) => {
         e.preventDefault(); sfx.init();
+        centerBtn.classList.add('active-touch');
         if(playState === STATE.PLAYING) resetMarblePosition();
-    });
+    };
+    const centerRelease = (e) => { e.preventDefault(); centerBtn.classList.remove('active-touch'); };
+    centerBtn.addEventListener('touchstart', centerPress, {passive: false});
+    centerBtn.addEventListener('touchend', centerRelease, {passive: false});
+    centerBtn.addEventListener('mousedown', centerPress);
+    centerBtn.addEventListener('mouseup', centerRelease);
+    centerBtn.addEventListener('mouseleave', centerRelease);
 
     function resetMarblePosition() {
         marbleGroup.position.set(0, 0, boardD/2 - 3); // Start near bottom
@@ -996,15 +1026,21 @@
                             sfx.playBounceWrong();
                             showFeedback(false);
                             // Bounce back down
-                            physics.velZ = 0.23; 
-                            physics.velX *= 0.5;
+                            physics.velZ = 0.28; 
+                            physics.velX *= -0.5;
                         }
                         break;
                     }
                 }
             }
 
-            if (bounceCooldown > 0) bounceCooldown--;
+            if (bounceCooldown > 0) {
+                bounceCooldown--;
+                // คืนค่าสถานะให้กลับมาเล่นต่อได้เมื่อหมดคูลดาวน์เด้งออก (แก้ไขบั๊กติดหลุมผิด)
+                if (bounceCooldown === 0 && playState === STATE.BOUNCING_WRONG) {
+                    playState = STATE.PLAYING;
+                }
+            }
 
             // Wall Collisions
             if (nextX < physics.minX) { nextX = physics.minX; physics.velX *= -0.3; }
