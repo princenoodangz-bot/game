@@ -91,28 +91,24 @@
     <div class="hud-layer flex flex-col justify-between">
         
         <!-- แถบโจทย์และเวลาแบบใหม่ (Responsive Card) -->
-        <div class="w-full flex justify-center pt-3 sm:pt-5 px-3">
-            <div class="bg-white/95 backdrop-blur-md shadow-lg rounded-2xl p-3 sm:p-4 w-full max-w-lg border border-slate-200 pointer-events-auto">
-                <!-- ข้อมูลระดับและคะแนน -->
-                <div class="flex justify-between items-center mb-2 text-sm sm:text-base font-semibold border-b border-slate-100 pb-2">
+        <div class="w-full flex justify-center pt-2 px-2">
+            <div class="bg-white/95 backdrop-blur-md shadow-md rounded-xl p-2 w-full max-w-lg border border-slate-200 pointer-events-auto flex flex-col gap-1 sm:gap-2">
+                <!-- ข้อมูลระดับ เวลา และคะแนน (เรียงบรรทัดเดียว) -->
+                <div class="flex justify-between items-center text-xs sm:text-sm font-semibold border-b border-slate-100 pb-1">
                     <div class="text-blue-600 flex items-center gap-1">
-                        🎯 ข้อ <span id="hudLevel">1/6</span>
+                        🎯 <span id="hudLevel">1/6</span>
+                    </div>
+                    <div class="bg-rose-50 text-rose-600 px-3 py-0.5 rounded-full flex items-center gap-1 font-bold border border-rose-200 shadow-sm">
+                        ⏱️ <span id="hudTime">00:00</span>
                     </div>
                     <div class="text-amber-500 flex items-center gap-1">
-                        ⭐ คะแนน <span id="hudScore">0</span>
+                        ⭐ <span id="hudScore">0</span>
                     </div>
                 </div>
                 
-                <!-- ตัวโจทย์ (แสดงผลเต็มรูปแบบ) -->
-                <div class="text-center font-medium text-slate-800 text-lg sm:text-xl mb-3 leading-snug min-h-[3rem] flex items-center justify-center break-words" id="hudQuestion">
+                <!-- ตัวโจทย์ -->
+                <div class="text-center font-medium text-slate-800 text-base sm:text-lg leading-tight min-h-[1.5rem] flex items-center justify-center break-words" id="hudQuestion">
                     เตรียมพร้อม...
-                </div>
-                
-                <!-- ตัวจับเวลา (อยู่ด้านล่างโจทย์ ชัดเจน) -->
-                <div class="flex justify-center">
-                    <div class="bg-rose-50 text-rose-600 px-5 py-1.5 rounded-full font-bold flex items-center gap-2 text-lg sm:text-xl border-2 border-rose-200 shadow-sm">
-                        ⏱️ เวลา <span id="hudTime">00:00</span>
-                    </div>
                 </div>
             </div>
         </div>
@@ -418,10 +414,10 @@
         const aspect = window.innerWidth / window.innerHeight;
         camera.aspect = aspect;
         if (window.innerWidth < 640) {
-            // ปรับมุมกล้องมือถือให้ถอยห่างและกดต่ำลงนิดหน่อย เพื่อหลบการ์ดโจทย์ที่ใหญ่ขึ้น
-            camera.fov = 44;
-            camera.position.set(0, 24.0, 19.5); 
-            camera.lookAt(0, -1.5, 1.5); 
+            // มุมกล้องมือถือ: ยกกล้องขึ้น ถอยห่าง และกดมุมมองลง เพื่อเลื่อนกระดานลงมาครึ่งล่าง
+            camera.fov = 50; 
+            camera.position.set(0, 28.0, 22.0); 
+            camera.lookAt(0, -6.0, 4.0); 
         } else {
             // Desktop 
             camera.fov = 36;
